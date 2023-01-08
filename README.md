@@ -13,6 +13,7 @@
 
 <p align="center">EquityCracker v3 is out! Check it out - Open Source Project</p>
 
+This is a part of the [Equity CSharp](https://github.com/4telly/EquityCSharp) Project by [@4telly](https://www.github.com/4telly). Please make sure you follow the Ankr terms of service while using this script! (You can read them under https://www.ankr.com/terms/) This Project is for eduaction purporses only and we are not liable for any damages that might occur.
 
 ## Links and other Project's
 
