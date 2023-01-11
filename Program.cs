@@ -1,40 +1,45 @@
 ﻿using System;
 using System.IO;
 using System.Net;
+using NBitcoin;
 using ManagedCuda;
 using System.Text;
-using System.Runtime;
+using NBitcoin.JsonConverters;
 using System.Net.Http;
 using Newtonsoft.Json.Linq;
 using System.Configuration;
+using Newtonsoft.Json;
 using System.Threading.Tasks;
-using ManagedCuda.BasicTypes;
 using Nethereum.Web3.Accounts;
-using System.Collections.Generic;
 using System.Security.Cryptography;
-using ManagedCuda.VectorTypes;
-using System.Runtime.InteropServices;
-using Nethereum.Web3;
-using static System.Net.Mime.MediaTypeNames;
+using Org.BouncyCastle.Utilities.Net;
 
 namespace equity_cracker
 {
     internal static class Program
     {
-        private static object  consoleLock = new object();
-        public  static Boolean runCode     = true;
-        public  static int     hits        = 0;
-        public  static int     checks      = 0;
+        private static object  consoleLock  = new object();
+        public  static Boolean runCode      = true;
+        public  static int     hits         = 0;
+        public  static int     checks       = 0;
         public  static int     proxyChangerValue = 0;
-        public  static Boolean UseProxy    = Convert.ToBoolean(ConfigurationManager.AppSettings["UseProxy"]);
-        public  static Boolean DebugOption = Convert.ToBoolean(ConfigurationManager.AppSettings["debug"]);
-        public  static int     Threads     = Convert.ToInt16(ConfigurationManager.AppSettings["threads"]);
+        public  static Boolean UseProxy     = Convert.ToBoolean(ConfigurationManager.AppSettings["UseProxy"]);
+        public  static Boolean DebugOption  = Convert.ToBoolean(ConfigurationManager.AppSettings["debug"]);
+        public  static int     Threads      = Convert.ToInt16(ConfigurationManager.AppSettings["threads"]);
+        public  static string  cryptoToMine = Convert.ToString(ConfigurationManager.AppSettings["cryptoToMine"]);
 
         public static Boolean  proxyChanger = Convert.ToBoolean(ConfigurationManager.AppSettings["proxyChanger"]);
         public static string   proxyChangerValueString = Convert.ToString(ConfigurationManager.AppSettings["proxyChangerValue"]);
 
         public static async Task Main()
         {
+            if (cryptoToMine != "eth")
+            {
+                Console.WriteLine("Please use eth as CryptoToMine!");
+                Console.ReadLine();
+                Environment.Exit(0);
+            }
+
             Console.Title = "Equity cracker v3 - Hits: " + hits;
 
             try
@@ -98,19 +103,40 @@ namespace equity_cracker
                 Environment.Exit(0);
             }
 
+            lock (consoleLock) { Console.Clear(); }
+
+            string path = @"..\hits.txt";
+            string proxyFilePath = @"..\proxys.txt";
+            if (UseProxy == true)
+            {
+                if (!(File.Exists(proxyFilePath)))
+                {
+                    using (FileStream fs = File.Create(proxyFilePath)) { };
+                }
+            }
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            if (!(File.Exists(path)))
+            {
+                Console.Write("Creating hits.txt.. | ");
+                using (FileStream fs = File.Create(path)) { };
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine("done.");
+            }
+            Console.WriteLine();
+
             Console.WriteLine("Starting miner.. Good Luck!");
 
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
 
-            Task[] tasks = new Task[10];
+            Task[] tasks = new Task[Threads];
 
-            for (int i = 0; i < 10; i++)
+            for (int i = 0; i < Threads; i++)
             {
                 tasks[i] = Task.Run( async () =>
                 {
-                    string proxyFilePath = "proxys.txt";
-
-                    if (!(File.Exists(proxyFilePath))) { Console.WriteLine(proxyFilePath + " can't be found!"); Console.ReadLine(); Environment.Exit(0); }
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    if (!(File.Exists(proxyFilePath))) { lock (consoleLock) { Console.WriteLine(proxyFilePath + " can't be found!"); Console.ReadLine(); Environment.Exit(0); } }
+                    Console.ForegroundColor = ConsoleColor.White;
 
                     string[] proxys = File.ReadAllLines(proxyFilePath);
 
@@ -119,11 +145,12 @@ namespace equity_cracker
                         try
                         {
                             int currentProxyIndex = 0;
+
                             while (runCode)
                             {
                                 var currentProxy = proxys[currentProxyIndex];
                                 currentProxyIndex++;
-                                string url = "https://rpc.ankr.com/eth";
+                                string url = "https://rpc.ankr.com/" + cryptoToMine;
                                 ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
 
                                 var startTime = DateTime.Now;
@@ -138,7 +165,6 @@ namespace equity_cracker
                                 string address = account.Address;
 
                                 HttpClientHandler handler = new HttpClientHandler();
-                                handler.Proxy = new WebProxy(proxy);
                                 HttpClient client = new HttpClient(handler);
 
                                 string json = "{\"jsonrpc\":\"2.0\",\"method\":\"eth_getBalance\",\"params\":[" +
@@ -166,7 +192,6 @@ namespace equity_cracker
                                         hits++;
                                         Console.Title = "Equity cracker v3 - Hits: " + hits;
                                         string textToSave = privateKey + " | Bal: " + balance;
-                                        string path = "./hits.txt";
 
                                         File.WriteAllText(path, textToSave);
                                     }
@@ -179,7 +204,7 @@ namespace equity_cracker
 
                                     checks++;
 
-                                    if (checks > proxyChangerValue) { Console.WriteLine("Changing proxy.."); continue; }
+                                    if(proxyChanger == true) { if (checks > proxyChangerValue) { Console.WriteLine("Changing proxy.."); checks = 0; continue; } }
 
                                     if (currentProxyIndex >= proxys.Length) { currentProxyIndex = 0; }
                                 }
@@ -187,7 +212,7 @@ namespace equity_cracker
                         }
                         catch (Exception e)
                         {
-                            if (DebugOption == true) { Console.WriteLine(e); }
+                            if (DebugOption == true) { Console.WriteLine("Exception - miner"); Console.WriteLine(e); }
                             continue;
                         }
                     }
