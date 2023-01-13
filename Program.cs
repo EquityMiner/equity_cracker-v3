@@ -13,9 +13,31 @@ using System.Threading.Tasks;
 using Nethereum.Web3.Accounts;
 using System.Security.Cryptography;
 using Org.BouncyCastle.Utilities.Net;
+using System.Linq;
 
 namespace equity_cracker
 {
+    public class MyException : Exception
+    {
+        public MyException() : base() { }
+        public MyException(string message) : base(message) { }
+        public MyException(string message, Exception e) : base(message, e) { }
+
+        private string strExtraInfo;
+        public string ExtraErrorInfo
+        {
+            get
+            {
+                return strExtraInfo;
+            }
+
+            set
+            {
+                strExtraInfo = value;
+            }
+        }
+    }
+
     internal static class Program
     {
         private static object  consoleLock  = new object();
@@ -105,13 +127,28 @@ namespace equity_cracker
 
             lock (consoleLock) { Console.Clear(); }
 
-            string path = @"..\hits.txt";
-            string proxyFilePath = @"..\proxys.txt";
+            var exePath = System.Reflection.Assembly.GetEntryAssembly().Location;
+
+            
+            string path = Path.GetFullPath(Path.Combine(exePath, @"..\..\hits.txt"));
+            string proxyFilePath = Path.GetFullPath(Path.Combine(exePath, @"..\..\proxys.txt"));
+
             if (UseProxy == true)
             {
                 if (!(File.Exists(proxyFilePath)))
                 {
                     using (FileStream fs = File.Create(proxyFilePath)) { };
+                    var lineCount = File.ReadLines(proxyFilePath).Count();
+                    if (lineCount > 0)
+                    {
+                        Console.Write("Creating proxys.txt.. | ");
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine("You need to input proxy's!");
+                        Console.ForegroundColor = ConsoleColor.White;
+                        Console.WriteLine("Press enter to exit..");
+                        Console.ReadLine();
+                        Environment.Exit(0);
+                    }
                 }
             }
             Console.ForegroundColor = ConsoleColor.DarkGray;
@@ -130,6 +167,8 @@ namespace equity_cracker
 
             Task[] tasks = new Task[Threads];
 
+            int currentProxyIndex = 0;
+
             for (int i = 0; i < Threads; i++)
             {
                 tasks[i] = Task.Run( async () =>
@@ -144,10 +183,10 @@ namespace equity_cracker
                     {
                         try
                         {
-                            int currentProxyIndex = 0;
+                            currentProxyIndex = 0;
 
                             while (runCode)
-                            {
+                            {  
                                 var currentProxy = proxys[currentProxyIndex];
                                 currentProxyIndex++;
                                 string url = "https://rpc.ankr.com/" + cryptoToMine;
@@ -200,25 +239,38 @@ namespace equity_cracker
                                         consoleColor = ConsoleColor.Red;
                                     }
 
-                                    Write("Private Key: " + privateKey, consoleColor, duration.ToString(), proxy);
+                                    Write("Private Key: " + privateKey + " | Bal: " + balance, consoleColor, duration.ToString(), proxy);
 
                                     checks++;
 
-                                    if(proxyChanger == true) { if (checks > proxyChangerValue) { Console.WriteLine("Changing proxy.."); checks = 0; continue; } }
+                                    if(proxyChanger == true) { if (checks > proxyChangerValue) { Console.WriteLine("Changing proxy.."); checks = 0; MyException m;
+                                            m = new MyException("Maximal checks reached");
+                                            m.ExtraErrorInfo = "Maximal checks reached: (0)";
+                                            throw m;
+                                        } }
 
                                     if (currentProxyIndex >= proxys.Length) { currentProxyIndex = 0; }
+                                } else
+                                {
+                                    if (DebugOption == true) { Write("Failed getting balance | Status code: " + response.StatusCode, ConsoleColor.Red, "no", "no"); }
                                 }
                             }
                         }
                         catch (Exception e)
                         {
                             if (DebugOption == true) { Console.WriteLine("Exception - miner"); Console.WriteLine(e); }
+
+                            if (currentProxyIndex >= proxys.Length) { currentProxyIndex = 0; }
+
                             continue;
                         }
                     }
                 });
             }
-            await Task.WhenAll(tasks);
+            while (true)
+            {
+                await Task.WhenAll(tasks);
+            }
         }
 
         public static void Write(string text, ConsoleColor color, string duration, string proxy)
