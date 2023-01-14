@@ -1,8 +1,6 @@
 ﻿using System;
 using System.IO;
 using System.Net;
-using NBitcoin;
-using ManagedCuda;
 using System.Text;
 using NBitcoin.JsonConverters;
 using System.Net.Http;
