@@ -2,16 +2,14 @@
 using System.IO;
 using System.Net;
 using System.Text;
-using NBitcoin.JsonConverters;
+using System.Linq;
 using System.Net.Http;
 using Newtonsoft.Json.Linq;
 using System.Configuration;
-using Newtonsoft.Json;
 using System.Threading.Tasks;
 using Nethereum.Web3.Accounts;
 using System.Security.Cryptography;
-using Org.BouncyCastle.Utilities.Net;
-using System.Linq;
+using System.Threading;
 
 namespace equity_cracker
 {
@@ -47,6 +45,11 @@ namespace equity_cracker
         public  static Boolean DebugOption  = Convert.ToBoolean(ConfigurationManager.AppSettings["debug"]);
         public  static int     Threads      = Convert.ToInt16(ConfigurationManager.AppSettings["threads"]);
         public  static string  cryptoToMine = Convert.ToString(ConfigurationManager.AppSettings["cryptoToMine"]);
+
+        static int count = 0;
+        static Boolean startedAtIDK = false;
+        static Boolean MinerStarted = false;
+        static DateTime startTimeX = DateTime.Now;
 
         public static Boolean  proxyChanger = Convert.ToBoolean(ConfigurationManager.AppSettings["proxyChanger"]);
         public static string   proxyChangerValueString = Convert.ToString(ConfigurationManager.AppSettings["proxyChangerValue"]);
@@ -113,20 +116,9 @@ namespace equity_cracker
             Console.ReadLine();
             #endregion
 
-            if (UseProxy == false)
-            {
-                Console.ForegroundColor= ConsoleColor.Red;
-                Console.WriteLine("We don't recommend using this miner without proxy! Please use the Python version, else enable 'useProxy' in the .config");
-                Console.ForegroundColor = ConsoleColor.White;
-                Console.WriteLine("Press any key to exit..");
-                Console.ReadLine();
-                Environment.Exit(0);
-            }
-
             lock (consoleLock) { Console.Clear(); }
 
             var exePath = System.Reflection.Assembly.GetEntryAssembly().Location;
-
             
             string path = Path.GetFullPath(Path.Combine(exePath, @"..\..\hits.txt"));
             string proxyFilePath = Path.GetFullPath(Path.Combine(exePath, @"..\..\proxys.txt"));
@@ -167,6 +159,9 @@ namespace equity_cracker
 
             int currentProxyIndex = 0;
 
+            Thread t = new Thread(BackgroundTask);
+            t.Start();
+
             for (int i = 0; i < Threads; i++)
             {
                 tasks[i] = Task.Run( async () =>
@@ -177,17 +172,23 @@ namespace equity_cracker
 
                     string[] proxys = File.ReadAllLines(proxyFilePath);
 
-                    foreach (string proxy in proxys)
+                    MinerStarted = true;
+
+                    while (true)
                     {
                         try
                         {
-                            currentProxyIndex = 0;
-
-                            while (runCode)
-                            {  
+                            while(runCode)
+                            {
+                                if (startedAtIDK == false)
+                                {
+                                    startedAtIDK = true;
+                                    startTimeX = DateTime.Now;
+                                }
+                                count++;
                                 var currentProxy = proxys[currentProxyIndex];
                                 currentProxyIndex++;
-                                string url = "https://rpc.ankr.com/" + cryptoToMine;
+                                string url = "https://rpc.ankr.com/eth";
                                 ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
 
                                 var startTime = DateTime.Now;
@@ -202,13 +203,17 @@ namespace equity_cracker
                                 string address = account.Address;
 
                                 HttpClientHandler handler = new HttpClientHandler();
+
                                 HttpClient client = new HttpClient(handler);
+                                client.Timeout = new TimeSpan(0, 0, 30);
 
                                 string json = "{\"jsonrpc\":\"2.0\",\"method\":\"eth_getBalance\",\"params\":[" +
                                               $"\"{address}\",\"latest\"" +
                                               "],\"id\":1}";
 
                                 var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                                client.DefaultRequestHeaders.Connection.Clear();
 
                                 HttpResponseMessage response = await client.PostAsync(url, content);
 
@@ -237,23 +242,35 @@ namespace equity_cracker
                                         consoleColor = ConsoleColor.Red;
                                     }
 
-                                    Write("Private Key: " + privateKey + " | Bal: " + balance, consoleColor, duration.ToString(), proxy);
+                                    var idk = count + "Private Key: " + privateKey;
+                                    if (UseProxy == true)
+                                    {
+                                        idk = count + "Private Key: " + privateKey + " | Bal: " + balance;
+                                    }
+
+                                    Write(idk, consoleColor, duration.ToString(), "127.0.0.1");
 
                                     checks++;
 
-                                    if(proxyChanger == true) { if (checks > proxyChangerValue) { Console.WriteLine("Changing proxy.."); checks = 0; MyException m;
+                                    if (proxyChanger == true)
+                                    {
+                                        if (checks > proxyChangerValue)
+                                        {
+                                            Console.WriteLine("Changing proxy.."); checks = 0; MyException m;
                                             m = new MyException("Maximal checks reached");
                                             m.ExtraErrorInfo = "Maximal checks reached: (0)";
                                             throw m;
-                                        } }
+                                        }
+                                    }
 
                                     if (currentProxyIndex >= proxys.Length) { currentProxyIndex = 0; }
-                                } else
+                                }
+                                else
                                 {
                                     if (DebugOption == true) { Write("Failed getting balance | Status code: " + response.StatusCode, ConsoleColor.Red, "no", "no"); }
                                 }
                             }
-                        }
+                        } 
                         catch (Exception e)
                         {
                             if (DebugOption == true) { Console.WriteLine("Exception - miner"); Console.WriteLine(e); }
@@ -268,6 +285,36 @@ namespace equity_cracker
             while (true)
             {
                 await Task.WhenAll(tasks);
+            }
+        }
+
+        static void BackgroundTask()
+        {
+            while(true)
+            {
+                if (MinerStarted)
+                {
+                    if (count >= 1500)
+                    {
+                        runCode = false;
+                        lock (consoleLock) { Console.WriteLine("Stopped Miner. (This is an protection to not extend the ankr rate limited - DO NOT REPORT THAT AS AN ERROR!)"); }
+                        TimeSpan elapsedTime = DateTime.Now - startTimeX;
+                        double elapsedMilliseconds = elapsedTime.TotalMilliseconds;
+                        if (elapsedMilliseconds < 0)
+                        {
+                            count = 0;
+                            runCode = true;
+                        } else
+                        {
+                            var timeoutTime = 60000 - elapsedMilliseconds; ;
+                            var timeoutTimeInt = Convert.ToInt32(timeoutTime);
+                            Thread.Sleep(timeoutTimeInt);
+                            count = 0;
+                            runCode = true;
+                        }
+                        
+                    }
+                }
             }
         }
 
@@ -289,6 +336,60 @@ namespace equity_cracker
 
                 Console.ForegroundColor = ConsoleColor.White;
             }
+        }
+    }
+
+    class ConfigHandler
+    {
+
+        private static readonly string appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        private static readonly string configPath = Path.Combine(appDataPath, "EquityMiner", "settings.config");
+
+        public static void main()
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(configPath));
+            if (!File.Exists(configPath))
+            {
+                File.Create(configPath).Dispose();
+                WriteConfig("UseProxy", "true");
+                WriteConfig("debug", "false");
+                WriteConfig("threads", "10");
+                WriteConfig("cryptoToMine", "eth");
+                WriteConfig("proxyChanger", "false");
+                WriteConfig("proxyChangerValue", "500");
+            }
+
+            Program.UseProxy = Convert.ToBoolean(ReadConfig("UseProxy"));
+            Program.DebugOption = Convert.ToBoolean(ReadConfig("debug"));
+            Program.Threads = Convert.ToUInt16(ReadConfig("threads"));
+            Program.cryptoToMine = ReadConfig("cryptoToMine");
+            Program.proxyChanger = Convert.ToBoolean(ReadConfig("proxyChanger"));
+            Program.proxyChangerValue = Convert.ToInt16(ReadConfig("proxyChangerValue"));
+        }
+
+        static void WriteConfig(string setting, string value)
+        {
+            using (StreamWriter writer = new StreamWriter(configPath, true))
+            {
+                writer.WriteLine(setting + "=" + value);
+            }
+        }
+
+        public static string ReadConfig(string setting)
+        {
+            using (StreamReader reader = new StreamReader(configPath))
+            {
+                string line;
+                while ((line = reader.ReadLine()) != null)
+                {
+                    string[] parts = line.Split('=');
+                    if (parts[0] == setting)
+                    {
+                        return parts[1];
+                    }
+                }
+            }
+            return null;
         }
     }
 }
