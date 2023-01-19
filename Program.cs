@@ -1,61 +1,449 @@
-﻿using System;
+using System;
 using System.IO;
-using System.Net;
-using System.Text;
-using System.Linq;
-using System.Net.Http;
-using Newtonsoft.Json.Linq;
 using System.Configuration;
 using System.Threading.Tasks;
-using Nethereum.Web3.Accounts;
 using System.Security.Cryptography;
 using System.Threading;
+using System.Diagnostics;
+using Nethereum.Web3;
 
 namespace equity_cracker
 {
-    public class MyException : Exception
-    {
-        public MyException() : base() { }
-        public MyException(string message) : base(message) { }
-        public MyException(string message, Exception e) : base(message, e) { }
-
-        private string strExtraInfo;
-        public string ExtraErrorInfo
-        {
-            get
-            {
-                return strExtraInfo;
-            }
-
-            set
-            {
-                strExtraInfo = value;
-            }
-        }
-    }
 
     internal static class Program
     {
+        #region Vars
         private static object  consoleLock  = new object();
-        public  static Boolean runCode      = true;
+        public  static Boolean runCode      = false;
         public  static int     hits         = 0;
         public  static int     checks       = 0;
         public  static int     proxyChangerValue = 0;
-        public  static Boolean UseProxy     = Convert.ToBoolean(ConfigurationManager.AppSettings["UseProxy"]);
         public  static Boolean DebugOption  = Convert.ToBoolean(ConfigurationManager.AppSettings["debug"]);
+        public  static Boolean enableCustomRPC = Convert.ToBoolean(ConfigurationManager.AppSettings["enableCustomRPC"]);
+        public  static Boolean censoreRPC   = Convert.ToBoolean(ConfigurationManager.AppSettings["censoreRPC"]);
         public  static int     Threads      = Convert.ToInt16(ConfigurationManager.AppSettings["threads"]);
         public  static string  cryptoToMine = Convert.ToString(ConfigurationManager.AppSettings["cryptoToMine"]);
+        public  static string  customRPC    = Convert.ToString(ConfigurationManager.AppSettings["customRPC"]);
+        public  static int     consoleRefreshRate = Convert.ToInt16(ConfigurationManager.AppSettings["consoleRefreshRate"]);
+        #endregion
 
-        static int count = 0;
-        static Boolean startedAtIDK = false;
-        static Boolean MinerStarted = false;
-        static DateTime startTimeX = DateTime.Now;
+        public static async Task NewMenu()
+        {
+            Console.Title = "Loading..";
+            Console.ForegroundColor = ConsoleColor.DarkMagenta;
+            string text = @"
+███████╗ ██████╗ ██╗   ██╗██╗████████╗██╗   ██╗    ██╗   ██╗██████╗ 
+██╔════╝██╔═══██╗██║   ██║██║╚══██╔══╝╚██╗ ██╔╝    ██║   ██║╚════██╗
+█████╗  ██║   ██║██║   ██║██║   ██║    ╚████╔╝     ██║   ██║ █████╔╝
+██╔══╝  ██║▄▄ ██║██║   ██║██║   ██║     ╚██╔╝      ╚██╗ ██╔╝ ╚═══██╗
+███████╗╚██████╔╝╚██████╔╝██║   ██║      ██║        ╚████╔╝ ██████╔╝
+╚══════╝ ╚══▀▀═╝  ╚═════╝ ╚═╝   ╚═╝      ╚═╝         ╚═══╝  ╚═════╝ 
+";
+            foreach (char c in text)
+            {
+                Console.Write(c);
+                Thread.Sleep(10);
+            }
+            string undertitle = "Version: v3.0.1 - build 1901";
+            Console.CursorVisible = false;
+            int width = 30;
+            int left = Console.CursorLeft;
+            int top = Console.CursorTop;
+            int i = 0;
 
-        public static Boolean  proxyChanger = Convert.ToBoolean(ConfigurationManager.AppSettings["proxyChanger"]);
-        public static string   proxyChangerValueString = Convert.ToString(ConfigurationManager.AppSettings["proxyChangerValue"]);
+            /*
+            for (i = 0; i <= width; i++)
+            {
+                Console.SetCursorPosition(left, top);
+                Console.Write("[");
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.SetCursorPosition(left + i, top);
+                Console.Write("#");
+                Console.ForegroundColor = ConsoleColor.White;
+                Console.SetCursorPosition(left + width, top);
+                Console.Write("]");
+                Console.SetCursorPosition(left + width + 1, top);
+                Console.Write(" {0}%", (i * 100) / width);
+                Thread.Sleep(100);
+            }
+            */
+
+            for(int x = 0; x <= 1; x++)
+            {
+                i++;
+                Console.SetCursorPosition(left, top);
+                Console.Write("[");
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.SetCursorPosition(left + i, top);
+                Console.Write("#");
+                Console.ForegroundColor = ConsoleColor.White;
+                Console.SetCursorPosition(left + width, top);
+                Console.Write("]");
+                Console.SetCursorPosition(left + width + 1, top);
+                Console.Write(" {0}%", (i * 100) / width);
+                Thread.Sleep(100);
+            }
+
+            Thread t = new Thread(BackgroundThread);
+            t.Start();
+
+            for (i = 0; i <= width; i++)
+            {
+                Console.SetCursorPosition(left, top);
+                Console.Write("[");
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.SetCursorPosition(left + i, top);
+                Console.Write("#");
+                Console.ForegroundColor = ConsoleColor.White;
+                Console.SetCursorPosition(left + width, top);
+                Console.Write("]");
+                Console.SetCursorPosition(left + width + 1, top);
+                Console.Write(" {0}%", (i * 100) / width);
+                Thread.Sleep(60);
+            }
+            Console.CursorVisible = true;
+            Console.SetCursorPosition(0, Console.CursorTop);
+            Console.Write(new string(' ', Console.BufferWidth));
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            foreach (char c in undertitle)
+            {
+                Console.Write(c);
+                Thread.Sleep(30);
+            }
+            Console.ForegroundColor = ConsoleColor.White;
+            string choice1 = "ENTER";
+            string choice1text = " Start Miner";
+            string choice2 = "C";
+            string choice2text = " Open config in notepad";
+            string choice3 = "ESC";
+            string choice3text = "  Exit";
+            Console.WriteLine();
+            Console.WriteLine();
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.Write("[");
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            foreach (char c in choice1)
+            {
+                Console.Write(c);
+                Thread.Sleep(30);
+            }
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.Write("]");
+            Console.ForegroundColor = ConsoleColor.Green;
+            foreach (char c in choice1text)
+            {
+                Console.Write(c);
+                Thread.Sleep(30);
+            }
+            Console.WriteLine();
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.Write("[");
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            foreach (char c in choice2)
+            {
+                Console.Write(c);
+                Thread.Sleep(30);
+            }
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.Write("]    ");
+            Console.ForegroundColor = ConsoleColor.Green;
+            foreach (char c in choice2text)
+            {
+                Console.Write(c);
+                Thread.Sleep(30);
+            }
+            Console.WriteLine();
+            Console.WriteLine();
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.Write("[");
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            foreach (char c in choice3)
+            {
+                Console.Write(c);
+                Thread.Sleep(30);
+            }
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.Write("] ");
+            Console.ForegroundColor = ConsoleColor.Red;
+            foreach (char c in choice3text)
+            {
+                Console.Write(c);
+                Thread.Sleep(30);
+            }
+            Console.WriteLine();
+            Console.ForegroundColor = ConsoleColor.White;
+            while (true)
+            {
+                ConsoleKeyInfo key = Console.ReadKey(true);
+                if (key.Key == ConsoleKey.Enter)
+                {
+                    for (int x = 0; x < Threads; x++)
+                    {
+                        runCode = true;
+                        Thread minerThreads = new Thread(testMiner);
+                        minerThreads.Start();
+                    }
+                    var idkVar69 = false;
+                    while(true)
+                    {
+                        key = Console.ReadKey(true);
+                        if (key.Key == ConsoleKey.X)
+                        {
+                            idkVar69 = true;
+                            runCode = false;
+                            Thread.Sleep(1000);
+                            Console.WriteLine("Miner Stopped. Press Enter to start again");
+                        } else 
+                        if (key.Key == ConsoleKey.Enter)
+                        {
+                            if (idkVar69 == true)
+                            {
+                                runCode = false;
+                            }
+                        }
+                    }
+                } else
+                if (key.Key == ConsoleKey.Escape)
+                {
+                    Console.ForegroundColor= ConsoleColor.Red;
+                    Console.WriteLine("Exiting..");
+                    Thread.Sleep(2000);
+                    Environment.Exit(0);
+                } else
+                if (key.Key == ConsoleKey.C)
+                {
+                    var exePath = System.Reflection.Assembly.GetEntryAssembly().Location;
+
+                    string path = Path.GetFullPath(Path.Combine(exePath, @"..\..\config\settings.config"));
+                    Process.Start("notepad.exe", path);
+                }
+            }
+        }
+
+        static void BackgroundThread2()
+        {
+            while(true)
+            {
+
+            }
+        }
+
+        static string address;
+        static System.TimeSpan duration;
+        static Nethereum.Hex.HexTypes.HexBigInteger balance;
+
+        static string final;
+        static string cpuUsage;
+        static void BackgroundThread()
+        {
+            while(true)
+            {
+                if (runCode)
+                {
+                    Console.Title = "EquityCracker | Mining.. | Hits: " + hits;
+                    Console.WriteLine("ok");
+                    PerformanceCounter cpuCounter;
+                    PerformanceCounter ramCounter;
+
+                    cpuCounter = new PerformanceCounter("Processor", "% Processor Time", "_Total");
+                    ramCounter = new PerformanceCounter("Memory", "Available MBytes");
+                    while (true)
+                    {
+                        var firstCheck = checks;
+                        Thread.Sleep(1000);
+                        var secondCheck = checks;
+                        var local = secondCheck - firstCheck;
+                        var local2 = local;
+                        final = local2.ToString();
+                        cpuUsage = cpuCounter.NextValue() + "%";
+
+                        Console.SetCursorPosition(0, 10);
+                        Console.Write(new string(' ', Console.BufferWidth));
+                        Console.SetCursorPosition(0, 10);
+                        Console.ForegroundColor = ConsoleColor.DarkGray;
+                        Console.Write("         Wallet: ");
+                        Console.ForegroundColor = ConsoleColor.White;
+                        Console.WriteLine(address);
+
+                        Console.SetCursorPosition(0, 11);
+                        Console.Write(new string(' ', Console.BufferWidth));
+                        Console.SetCursorPosition(0, 11);
+                        Console.ForegroundColor = ConsoleColor.DarkGray;
+                        Console.Write("Generation Time: ");
+                        Console.ForegroundColor = ConsoleColor.White;
+                        Console.WriteLine(duration);
+
+                        Console.SetCursorPosition(0, 12);
+                        Console.Write(new string(' ', Console.BufferWidth));
+                        Console.SetCursorPosition(0, 12);
+                        Console.ForegroundColor = ConsoleColor.DarkGray;
+                        Console.Write("        Balance: ");
+                        Console.ForegroundColor = ConsoleColor.White;
+                        Console.WriteLine(balance);
+
+                        Console.SetCursorPosition(0, 13);
+                        Console.Write(new string(' ', Console.BufferWidth));
+
+                        Console.SetCursorPosition(0, 14);
+                        Console.Write(new string(' ', Console.BufferWidth));
+                        Console.SetCursorPosition(0, 14);
+                        Console.ForegroundColor = ConsoleColor.DarkGray;
+                        Console.Write("         Checks: ");
+                        Console.ForegroundColor = ConsoleColor.White;
+                        Console.WriteLine(checks);
+
+                        Console.SetCursorPosition(0, 15);
+                        Console.Write(new string(' ', Console.BufferWidth));
+                        Console.SetCursorPosition(0, 15);
+                        Console.ForegroundColor = ConsoleColor.DarkGray;
+                        Console.Write("            CPS: ");
+                        Console.ForegroundColor = ConsoleColor.White;
+                        Console.WriteLine(final);
+
+                        Console.SetCursorPosition(0, 16);
+                        Console.Write(new string(' ', Console.BufferWidth));
+                        Console.SetCursorPosition(0, 16);
+                        Console.ForegroundColor = ConsoleColor.DarkGray;
+                        Console.Write("      CPU Usage: ");
+                        Console.ForegroundColor = ConsoleColor.White;
+                        Console.WriteLine(cpuUsage);
+
+                        Console.SetCursorPosition(0, 17);
+                        Console.Write(new string(' ', Console.BufferWidth));
+                        Console.SetCursorPosition(0, 17);
+                        Console.ForegroundColor = ConsoleColor.DarkGray;
+                        Console.Write("       Endpoint: ");
+                        Console.ForegroundColor = ConsoleColor.White;
+                        if (censoreRPC == true)
+                        {
+                            Console.WriteLine("[censored]");
+                        } else
+                        {
+                            Console.WriteLine(rpc);
+                        }
+                    }
+                }
+            }
+        }
+
+        static string rpc = "https://rpc.ankr.com/eth";
+        static async void testMiner()
+        {
+            Console.CursorVisible = false;
+            try
+            {
+                if (enableCustomRPC == true)
+                {
+                    rpc = customRPC;
+                }
+                while (true)
+                {
+                    while (runCode)
+                    {
+                        var web3 = new Nethereum.Web3.Web3(rpc);
+                        var startTime = DateTime.Now;
+                        var rng = new RNGCryptoServiceProvider();
+                        var privateKeyBytes = new byte[32];
+                        rng.GetBytes(privateKeyBytes);
+                        var privateKey = BitConverter.ToString(privateKeyBytes).Replace("-", "").ToLower();
+                        var endTime = DateTime.Now;
+                        duration = endTime - startTime;
+                        var account = new Nethereum.Web3.Accounts.Account(privateKey);
+                        address = account.Address;
+                        decimal etherAmount;
+                        try
+                        {
+                            balance = await web3.Eth.GetBalance.SendRequestAsync(address);
+                            etherAmount = Web3.Convert.FromWei(balance.Value);
+                        }
+                        catch (Exception)
+                        {
+                            if (enableCustomRPC == true)
+                            {
+                                continue;
+                            } else
+                            if (rpc == "https://rpc.ankr.com/eth")
+                            {
+                                rpc = "https://eth.llamarpc.com";
+                            }
+                            else if (rpc == "https://eth.llamarpc.com")
+                            {
+                                rpc = "https://cloudflare-eth.com/";
+                            }
+                            else if (rpc == "https://cloudflare-eth.com/")
+                            {
+                                rpc = "https://eth-mainnet.gateway.pokt.network/v1/5f3453978e354ab992c4da79";
+                            }
+                            else if (rpc == "https://eth-mainnet.gateway.pokt.network/v1/5f3453978e354ab992c4da79")
+                            {
+                                rpc = "https://rpc.ankr.com/eth";
+                            }
+                            continue;
+                        }
+
+                        checks++;
+
+                        if (etherAmount != 0)
+                        {
+                            hits++;
+
+                            var exePath = System.Reflection.Assembly.GetEntryAssembly().Location;
+
+                            string path = Path.GetFullPath(Path.Combine(exePath, @"..\..\hits.txt"));
+
+                            try
+                            {
+                                if (!(File.Exists(path)))
+                                {
+                                    using (FileStream fs = File.Create(path)) { };
+                                }
+                            } catch (Exception)
+                            {
+                                runCode = false;
+                                Thread.Sleep(1000);
+                                Console.WriteLine("Something went wrong with saving hits! Please save the private key down below!");
+                                Console.WriteLine("If you want to support us, you can donate to this ethereum address: 0xe0f37a884658556d7577a5d34184f8054a4f752e");
+                                Console.WriteLine();
+                                Console.WriteLine("Private Key: " + privateKey);
+                                Console.ReadLine();
+                            }
+
+                            Console.Title = "EquityCracker | Mining.. | Hits: " + hits;
+                            try
+                            {
+                                Console.ForegroundColor= ConsoleColor.Green;
+                                Console.WriteLine("YOU GOT A HIT! | PrivateKey" + privateKey);
+                                Console.ForegroundColor = ConsoleColor.White;
+                                File.AppendAllText(path,
+                                        "Private Key: " + privateKey + Environment.NewLine);
+                            } catch (Exception)
+                            {
+                                runCode = false;
+                                Thread.Sleep(2000);
+                                Console.WriteLine("Something went wrong with saving hits! Please save the private key down below!");
+                                Console.WriteLine("If you want to support us, you can donate to this ethereum address: 0xe0f37a884658556d7577a5d34184f8054a4f752e");
+                                Console.WriteLine();
+                                Console.WriteLine("Private Key: " + privateKey);
+                                Console.ReadLine();
+                            }
+                        }
+                    }
+                }
+            } catch(Exception ex)
+            {
+                Console.WriteLine($"Error: {ex.Message}");
+            }
+
+        }
 
         public static async Task Main()
         {
+            await NewMenu();
+            Console.ReadLine();
+            Environment.Exit(0);
+            
+            #region old System
+            /*
             if (cryptoToMine != "eth")
             {
                 Console.WriteLine("Please use eth as CryptoToMine!");
@@ -159,9 +547,6 @@ namespace equity_cracker
 
             int currentProxyIndex = 0;
 
-            Thread t = new Thread(BackgroundTask);
-            t.Start();
-
             for (int i = 0; i < Threads; i++)
             {
                 tasks[i] = Task.Run( async () =>
@@ -199,7 +584,7 @@ namespace equity_cracker
                                 var endTime = DateTime.Now;
                                 var duration = endTime - startTime;
 
-                                var account = new Account(privateKey);
+                                var account = new Nethereum.Web3.Accounts.Account(privateKey);
                                 string address = account.Address;
 
                                 HttpClientHandler handler = new HttpClientHandler();
@@ -282,40 +667,8 @@ namespace equity_cracker
                     }
                 });
             }
-            while (true)
-            {
-                await Task.WhenAll(tasks);
-            }
-        }
-
-        static void BackgroundTask()
-        {
-            while(true)
-            {
-                if (MinerStarted)
-                {
-                    if (count >= 1500)
-                    {
-                        runCode = false;
-                        lock (consoleLock) { Console.WriteLine("Stopped Miner. (This is an protection to not extend the ankr rate limited - DO NOT REPORT THAT AS AN ERROR!)"); }
-                        TimeSpan elapsedTime = DateTime.Now - startTimeX;
-                        double elapsedMilliseconds = elapsedTime.TotalMilliseconds;
-                        if (elapsedMilliseconds < 0)
-                        {
-                            count = 0;
-                            runCode = true;
-                        } else
-                        {
-                            var timeoutTime = 60000 - elapsedMilliseconds; ;
-                            var timeoutTimeInt = Convert.ToInt32(timeoutTime);
-                            Thread.Sleep(timeoutTimeInt);
-                            count = 0;
-                            runCode = true;
-                        }
-                        
-                    }
-                }
-            }
+            */
+            #endregion
         }
 
         public static void Write(string text, ConsoleColor color, string duration, string proxy)
@@ -339,57 +692,24 @@ namespace equity_cracker
         }
     }
 
-    class ConfigHandler
+    public class MyException : Exception
     {
+        public MyException() : base() { }
+        public MyException(string message) : base(message) { }
+        public MyException(string message, Exception e) : base(message, e) { }
 
-        private static readonly string appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-        private static readonly string configPath = Path.Combine(appDataPath, "EquityMiner", "settings.config");
-
-        public static void main()
+        private string strExtraInfo;
+        public string ExtraErrorInfo
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(configPath));
-            if (!File.Exists(configPath))
+            get
             {
-                File.Create(configPath).Dispose();
-                WriteConfig("UseProxy", "true");
-                WriteConfig("debug", "false");
-                WriteConfig("threads", "10");
-                WriteConfig("cryptoToMine", "eth");
-                WriteConfig("proxyChanger", "false");
-                WriteConfig("proxyChangerValue", "500");
+                return strExtraInfo;
             }
 
-            Program.UseProxy = Convert.ToBoolean(ReadConfig("UseProxy"));
-            Program.DebugOption = Convert.ToBoolean(ReadConfig("debug"));
-            Program.Threads = Convert.ToUInt16(ReadConfig("threads"));
-            Program.cryptoToMine = ReadConfig("cryptoToMine");
-            Program.proxyChanger = Convert.ToBoolean(ReadConfig("proxyChanger"));
-            Program.proxyChangerValue = Convert.ToInt16(ReadConfig("proxyChangerValue"));
-        }
-
-        static void WriteConfig(string setting, string value)
-        {
-            using (StreamWriter writer = new StreamWriter(configPath, true))
+            set
             {
-                writer.WriteLine(setting + "=" + value);
+                strExtraInfo = value;
             }
-        }
-
-        public static string ReadConfig(string setting)
-        {
-            using (StreamReader reader = new StreamReader(configPath))
-            {
-                string line;
-                while ((line = reader.ReadLine()) != null)
-                {
-                    string[] parts = line.Split('=');
-                    if (parts[0] == setting)
-                    {
-                        return parts[1];
-                    }
-                }
-            }
-            return null;
         }
     }
 }
