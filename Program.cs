@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Configuration;
 using System.Threading.Tasks;
@@ -12,12 +12,16 @@ using Nethereum.Web3;
 using System.Text;
 using System.Management;
 using System.Windows.Forms;
+using DiscordRPC;
+using DiscordRPC.Logging;
+using Nethereum.JsonRpc.Client;
 
 namespace equity_cracker
 {
-
     internal static class Program
     {
+        public static DiscordRpcClient client;
+
         [DllImport("kernel32.dll", SetLastError = true)]
         static extern bool SetConsoleWindowInfo(IntPtr hConsoleOutput, bool bAbsolute, ref COORD dwSize);
 
@@ -79,6 +83,39 @@ namespace equity_cracker
         public  static string logPath = Path.GetFullPath(Path.Combine(exePath, @"..\..\logs\latest.txt"));
 
         #endregion
+
+        static void Initialize()
+        {
+            client = new DiscordRpcClient("976039106150821898");
+
+            client.Logger = new ConsoleLogger() { Level = LogLevel.Warning };
+
+            client.OnReady += (sender, e) =>
+            {
+                //Console.WriteLine("Received Ready from user {0}", e.User.Username);
+            };
+
+            client.OnPresenceUpdate += (sender, e) =>
+            {
+                //Console.WriteLine("Received Update! {0}", e.Presence);
+            };
+
+            client.Initialize();
+
+            client.SetPresence(new RichPresence()
+            {
+                Details = "Mining with " + Threads + " threads",
+                Assets = new Assets()
+                {
+                    LargeImageKey = "equityw",
+                    LargeImageText = "EquityWMiner",
+                    SmallImageKey = null
+                },
+
+                Buttons = new DiscordRPC.Button[] {}
+            });
+            client.UpdateStartTime();
+        }
 
         public static Task NewMenu()
         {
@@ -489,6 +526,10 @@ namespace equity_cracker
                     ramCounter = new PerformanceCounter("Memory", "Available MBytes");
                     while (true)
                     {
+                        if (runCode == false)
+                        {
+                            Console.ReadLine();
+                        }
                         var firstCheck = checks;
                         Thread.Sleep(1000);
                         var secondCheck = checks;
@@ -589,11 +630,11 @@ namespace equity_cracker
                         var endTime = DateTime.Now;
                         duration = endTime - startTime;
                         var account = new Nethereum.Web3.Accounts.Account(privateKey);
+                        //var address = "0x1b3cb81e51011b549d78bf720b0d924ac763a7c2";
                         address = account.Address;
                         decimal etherAmount;
                         try
                         {
-
                             balance = await web3.Eth.GetBalance.SendRequestAsync(account.Address);
                             etherAmount = Web3.Convert.FromWei(balance.Value);
                         }
@@ -624,19 +665,40 @@ namespace equity_cracker
 
                         checks++;
 
+                        decimal etherAmount2 = etherAmount;
                         if (etherAmount > 0)
                         {
-                            var url = "https://min-api.cryptocompare.com/data/price?fsym=ETH&tsyms=USD";
-                            using (var client = new HttpClient())
+                            var walletValue = 0;
+                            try
                             {
-                                var response = client.GetAsync(url).Result;
-                                var price = JsonConvert.DeserializeObject<dynamic>(response.Content.ReadAsStringAsync().Result);
-                                var etherPrice = price.USD;
-                                Console.WriteLine($"Price: ${etherPrice}");
+                                runCode = false;
+                                var url = "https://min-api.cryptocompare.com/data/price?fsym=ETH&tsyms=USD";
+                                using (var client = new HttpClient())
+                                {
+                                    var response = client.GetAsync(url).Result;
+                                    var price = JsonConvert.DeserializeObject<dynamic>(response.Content.ReadAsStringAsync().Result);
+                                    decimal etherPrice = price.USD;
 
-                                // Calculate the wallet value in USD
-                                var walletValue = etherAmount * etherPrice;
-                                earnedMoney = earnedMoney + walletValue;
+                                    //var etherAmountOut = Convert.ToInt64(etherAmount);
+                                    //var etherPriceIdk = Convert.ToInt64(etherPrice);
+                                    //Console.WriteLine(etherAmount + " | " + etherPrice);
+                                    //Console.ReadLine();
+                                    var etherAmountTempString = etherAmount.ToString();
+                                    var etherPriceTempString = etherPrice.ToString();
+                                    etherAmountTempString = etherAmountTempString.Replace(",", ".");
+                                    etherPriceTempString = etherPriceTempString.Replace(",", ".");
+                                    Console.WriteLine(etherAmountTempString + " | " + etherPriceTempString);
+                                    int etherAmountOut;
+                                    int etherPriceOut;
+                                    Int32.TryParse(etherAmountTempString.ToString(), out etherAmountOut);
+                                    Int32.TryParse(etherPriceTempString.ToString(), out etherPriceOut);
+
+                                    walletValue = etherAmountOut * etherPriceOut;
+                                    earnedMoney += walletValue;
+                                }
+                            } catch(Exception e)
+                            {
+                                Console.WriteLine(e.ToString());
                             }
 
                             var exePath = System.Reflection.Assembly.GetEntryAssembly().Location;
@@ -648,10 +710,10 @@ namespace equity_cracker
                             {
                                 balance = await tempweb3.Eth.GetBalance.SendRequestAsync(address);
                                 etherAmount = Web3.Convert.FromWei(balance.Value);
-                            } catch (Exception e)
+                            } catch (Exception)
                             {
                                 File.AppendAllText(path,
-                                        "[Possible Ghost Hit] Private Key: " + privateKey + " | Bal: " + balance + Environment.NewLine);
+                                        "[Possible Ghost Hit] Private Key: " + privateKey + " | Bal: " + etherAmount2 + Environment.NewLine);
                                 break;
                             }
 
@@ -670,20 +732,21 @@ namespace equity_cracker
                                 Console.WriteLine("Something went wrong with saving hits! Please save the private key down below!");
                                 Console.WriteLine("If you want to support us, you can donate to this ethereum address: 0xe0f37a884658556d7577a5d34184f8054a4f752e");
                                 Console.WriteLine();
-                                Console.WriteLine("Private Key: " + privateKey + " | Bal: " + balance);
+                                Console.WriteLine("Private Key: " + privateKey + " | Bal: " + etherAmount2);
                                 Console.ReadLine();
                             }
 
-                            Console.Title = "EquityCracker | Mining.. | Hits: " + hits;
+                            Console.Title = "EquityCracker | Mining.. | Hits: " + hits + " | Earned money: $" + earnedMoney;
                             try
                             {
 
                                 Console.ForegroundColor= ConsoleColor.Green;
-                                Console.WriteLine("YOU GOT A HIT! | PrivateKey: " + privateKey + " | Bal: " + balance );
-                                earnedMoney = earnedMoney + 1;
+                                Console.WriteLine("YOU GOT A HIT! | PrivateKey: " + privateKey + " | Bal: " + etherAmount2);
+                                earnedMoney = earnedMoney + walletValue;
                                 Console.ForegroundColor = ConsoleColor.White;
                                 File.AppendAllText(path,
                                         "Private Key: " + privateKey + Environment.NewLine);
+                                Console.Title = "EquityCracker | Mining.. | Hits: " + hits + " | Earned money: $" + earnedMoney;
                             } catch (Exception)
                             {
                                 runCode = false;
@@ -691,7 +754,7 @@ namespace equity_cracker
                                 Console.WriteLine("Something went wrong with saving hits! Please save the private key down below!");
                                 Console.WriteLine("If you want to support us, you can donate to this ethereum address: 0xe0f37a884658556d7577a5d34184f8054a4f752e");
                                 Console.WriteLine();
-                                Console.WriteLine("Private Key: " + privateKey + " | Bal: " + balance);
+                                Console.WriteLine("Private Key: " + privateKey + " | Bal: " + etherAmount2);
                                 Console.ReadLine();
                             }
                         }
@@ -706,240 +769,13 @@ namespace equity_cracker
 
         public static async Task Main()
         {
+            Initialize();
             handler = new ConsoleEventDelegate(ConsoleEventCallback);
             SetConsoleCtrlHandler(handler, true);
 
             await Task.Run(NewMenu);
             Console.ReadLine();
             Environment.Exit(0);
-            
-            #region old System
-            /*
-            if (cryptoToMine != "eth")
-            {
-                Console.WriteLine("Please use eth as CryptoToMine!");
-                Console.ReadLine();
-                Environment.Exit(0);
-            }
-
-            Console.Title = "Equity cracker v3 - Hits: " + hits;
-
-            try
-            {
-                proxyChangerValue = Int32.Parse(proxyChangerValueString);
-            }
-            catch (FormatException)
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("proxyChangerValue needs to be a number! Check .config");
-                Console.ForegroundColor = ConsoleColor.White;
-                Console.WriteLine("Press enter to exit..");
-                Console.ReadLine();
-                Environment.Exit(0);
-            }
-
-            #region Show Settings
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine("Current settings:");
-            Console.WriteLine();
-            Console.ForegroundColor = ConsoleColor.DarkGray;
-            Console.Write("     UseProxy: ");
-            if ( UseProxy == true ) { Console.ForegroundColor = ConsoleColor.Green; } else { Console.ForegroundColor = ConsoleColor.Red; }
-            Console.WriteLine(UseProxy);
-            Console.ForegroundColor = ConsoleColor.DarkGray;
-            Console.Write("Proxy Changer: ");
-            if (proxyChanger == true) { Console.ForegroundColor = ConsoleColor.Green; } else { Console.ForegroundColor = ConsoleColor.Red; }
-            Console.WriteLine(proxyChangerValue);
-            Console.ForegroundColor = ConsoleColor.DarkGray;
-            Console.Write(" RPC endpoint: ");
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine("rpc.ankr.com*");
-            Console.ForegroundColor = ConsoleColor.DarkGray;
-            Console.Write("       Crypto: ");
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine("Ethereum(eth)*");
-            Console.ForegroundColor = ConsoleColor.DarkGray;
-            Console.Write("      Threads: ");
-            if (Threads > 10) { Console.ForegroundColor = ConsoleColor.Red; } else { Console.ForegroundColor = ConsoleColor.Green; }
-            Console.WriteLine(Threads);
-            Console.ForegroundColor = ConsoleColor.DarkGray;
-            Console.Write("        Debug: ");
-            if (DebugOption == true) { Console.ForegroundColor = ConsoleColor.Green; } else { Console.ForegroundColor = ConsoleColor.Red; }
-            Console.WriteLine(DebugOption);
-            Console.WriteLine();
-            Console.ForegroundColor = ConsoleColor.DarkGray;
-            Console.WriteLine("* = can't be changed");
-            Console.ForegroundColor = ConsoleColor.White;
-            Console.WriteLine();
-            Console.WriteLine("Press enter to start..");
-            Console.ReadLine();
-            #endregion
-
-            lock (consoleLock) { Console.Clear(); }
-
-            var exePath = System.Reflection.Assembly.GetEntryAssembly().Location;
-            
-            string path = Path.GetFullPath(Path.Combine(exePath, @"..\..\hits.txt"));
-            string proxyFilePath = Path.GetFullPath(Path.Combine(exePath, @"..\..\proxys.txt"));
-
-            if (UseProxy == true)
-            {
-                if (!(File.Exists(proxyFilePath)))
-                {
-                    using (FileStream fs = File.Create(proxyFilePath)) { };
-                    var lineCount = File.ReadLines(proxyFilePath).Count();
-                    if (lineCount > 0)
-                    {
-                        Console.Write("Creating proxys.txt.. | ");
-                        Console.ForegroundColor = ConsoleColor.Red;
-                        Console.WriteLine("You need to input proxy's!");
-                        Console.ForegroundColor = ConsoleColor.White;
-                        Console.WriteLine("Press enter to exit..");
-                        Console.ReadLine();
-                        Environment.Exit(0);
-                    }
-                }
-            }
-            Console.ForegroundColor = ConsoleColor.DarkGray;
-            if (!(File.Exists(path)))
-            {
-                Console.Write("Creating hits.txt.. | ");
-                using (FileStream fs = File.Create(path)) { };
-                Console.ForegroundColor = ConsoleColor.Green;
-                Console.WriteLine("done.");
-            }
-            Console.WriteLine();
-
-            Console.WriteLine("Starting miner.. Good Luck!");
-
-            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
-
-            Task[] tasks = new Task[Threads];
-
-            int currentProxyIndex = 0;
-
-            for (int i = 0; i < Threads; i++)
-            {
-                tasks[i] = Task.Run( async () =>
-                {
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    if (!(File.Exists(proxyFilePath))) { lock (consoleLock) { Console.WriteLine(proxyFilePath + " can't be found!"); Console.ReadLine(); Environment.Exit(0); } }
-                    Console.ForegroundColor = ConsoleColor.White;
-
-                    string[] proxys = File.ReadAllLines(proxyFilePath);
-
-                    MinerStarted = true;
-
-                    while (true)
-                    {
-                        try
-                        {
-                            while(runCode)
-                            {
-                                if (startedAtIDK == false)
-                                {
-                                    startedAtIDK = true;
-                                    startTimeX = DateTime.Now;
-                                }
-                                count++;
-                                var currentProxy = proxys[currentProxyIndex];
-                                currentProxyIndex++;
-                                string url = "https://rpc.ankr.com/eth";
-                                ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
-
-                                var startTime = DateTime.Now;
-                                var rng = new RNGCryptoServiceProvider();
-                                var privateKeyBytes = new byte[32];
-                                rng.GetBytes(privateKeyBytes);
-                                var privateKey = BitConverter.ToString(privateKeyBytes).Replace("-", "").ToLower();
-                                var endTime = DateTime.Now;
-                                var duration = endTime - startTime;
-
-                                var account = new Nethereum.Web3.Accounts.Account(privateKey);
-                                string address = account.Address;
-
-                                HttpClientHandler handler = new HttpClientHandler();
-
-                                HttpClient client = new HttpClient(handler);
-                                client.Timeout = new TimeSpan(0, 0, 30);
-
-                                string json = "{\"jsonrpc\":\"2.0\",\"method\":\"eth_getBalance\",\"params\":[" +
-                                              $"\"{address}\",\"latest\"" +
-                                              "],\"id\":1}";
-
-                                var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-                                client.DefaultRequestHeaders.Connection.Clear();
-
-                                HttpResponseMessage response = await client.PostAsync(url, content);
-
-
-                                if (response.IsSuccessStatusCode)
-                                {
-                                    string responseString = response.Content.ReadAsStringAsync().Result;
-
-                                    JObject responseJson = JObject.Parse(responseString);
-
-                                    string balance = (string)responseJson["result"];
-
-                                    var consoleColor = ConsoleColor.White;
-
-                                    if (balance != "0x0")
-                                    {
-                                        consoleColor = ConsoleColor.Green;
-                                        hits++;
-                                        Console.Title = "Equity cracker v3 - Hits: " + hits;
-                                        string textToSave = privateKey + " | Bal: " + balance;
-
-                                        File.WriteAllText(path, textToSave);
-                                    }
-                                    else
-                                    {
-                                        consoleColor = ConsoleColor.Red;
-                                    }
-
-                                    var idk = count + "Private Key: " + privateKey;
-                                    if (UseProxy == true)
-                                    {
-                                        idk = count + "Private Key: " + privateKey + " | Bal: " + balance;
-                                    }
-
-                                    Write(idk, consoleColor, duration.ToString(), "127.0.0.1");
-
-                                    checks++;
-
-                                    if (proxyChanger == true)
-                                    {
-                                        if (checks > proxyChangerValue)
-                                        {
-                                            Console.WriteLine("Changing proxy.."); checks = 0; MyException m;
-                                            m = new MyException("Maximal checks reached");
-                                            m.ExtraErrorInfo = "Maximal checks reached: (0)";
-                                            throw m;
-                                        }
-                                    }
-
-                                    if (currentProxyIndex >= proxys.Length) { currentProxyIndex = 0; }
-                                }
-                                else
-                                {
-                                    if (DebugOption == true) { Write("Failed getting balance | Status code: " + response.StatusCode, ConsoleColor.Red, "no", "no"); }
-                                }
-                            }
-                        } 
-                        catch (Exception e)
-                        {
-                            if (DebugOption == true) { Console.WriteLine("Exception - miner"); Console.WriteLine(e); }
-
-                            if (currentProxyIndex >= proxys.Length) { currentProxyIndex = 0; }
-
-                            continue;
-                        }
-                    }
-                });
-            }
-            */
-            #endregion
         }
 
         static bool ConsoleEventCallback(int eventType)
