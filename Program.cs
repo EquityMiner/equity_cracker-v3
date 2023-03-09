@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Configuration;
 using System.Threading.Tasks;
@@ -13,52 +13,12 @@ using System.Text;
 using System.Management;
 using System.Windows.Forms;
 using DiscordRPC;
-using DiscordRPC.Logging;
-using Nethereum.JsonRpc.Client;
 
 namespace equity_cracker
 {
     internal static class Program
     {
         public static DiscordRpcClient client;
-
-        [DllImport("kernel32.dll", SetLastError = true)]
-        static extern bool SetConsoleWindowInfo(IntPtr hConsoleOutput, bool bAbsolute, ref COORD dwSize);
-
-        [DllImport("kernel32.dll", SetLastError = true)]
-        static extern bool GetConsoleScreenBufferInfo(IntPtr hConsoleOutput, out CONSOLE_SCREEN_BUFFER_INFO lpConsoleScreenBufferInfo);
-
-        [StructLayout(LayoutKind.Sequential)]
-        struct COORD
-        {
-            public short X;
-            public short Y;
-
-            public COORD(short x, short y)
-            {
-                X = x;
-                Y = y;
-            }
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        struct CONSOLE_SCREEN_BUFFER_INFO
-        {
-            public COORD dwSize;
-            public COORD dwCursorPosition;
-            public short wAttributes;
-            public SMALL_RECT srWindow;
-            public COORD dwMaximumWindowSize;
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        struct SMALL_RECT
-        {
-            public short Left;
-            public short Top;
-            public short Right;
-            public short Bottom;
-        }
 
         #region Vars
         private static object  consoleLock  = new object();
@@ -86,35 +46,45 @@ namespace equity_cracker
 
         static void Initialize()
         {
-            client = new DiscordRpcClient("976039106150821898");
-
-            client.Logger = new ConsoleLogger() { Level = LogLevel.Warning };
-
-            client.OnReady += (sender, e) =>
+            try
             {
-                //Console.WriteLine("Received Ready from user {0}", e.User.Username);
-            };
+                client = new DiscordRpcClient("976039106150821898");
 
-            client.OnPresenceUpdate += (sender, e) =>
-            {
-                //Console.WriteLine("Received Update! {0}", e.Presence);
-            };
-
-            client.Initialize();
-
-            client.SetPresence(new RichPresence()
-            {
-                Details = "Mining with " + Threads + " threads",
-                Assets = new Assets()
+                client.OnReady += (sender, e) =>
                 {
-                    LargeImageKey = "equityw",
-                    LargeImageText = "EquityWMiner",
-                    SmallImageKey = null
-                },
+                    //Console.WriteLine("Received Ready from user {0}", e.User.Username);
+                };
 
-                Buttons = new DiscordRPC.Button[] {}
-            });
-            client.UpdateStartTime();
+                client.OnPresenceUpdate += (sender, e) =>
+                {
+                    //Console.WriteLine("Received Update! {0}", e.Presence);
+                };
+
+                client.OnError += (sender, e) =>
+                {
+                    //client.Deinitialize();
+                };
+
+                client.Initialize();
+
+                client.SetPresence(new RichPresence()
+                {
+                    Details = "Mining with " + Threads + " threads",
+                    Assets = new Assets()
+                    {
+                        LargeImageKey = "equityw",
+                        LargeImageText = "EquityWMiner",
+                        SmallImageKey = null
+                    },
+
+                    Buttons = new DiscordRPC.Button[] { }
+                });
+                client.UpdateStartTime();
+            } catch(Exception ex)
+            {
+                File.AppendAllText(logPath, ex.ToString());
+                client.Deinitialize();
+            }
         }
 
         public static Task NewMenu()
@@ -201,8 +171,9 @@ namespace equity_cracker
             {
                 var embed = new
                 {
-                    title = "EquityCracker v3 started",
-                    description = "‎",
+                    title = "EquityCracker v3 [started]",
+                    //description = "‎",
+                    description = "__**Current Settings**__\n\n:alarm_clock: Start time: **" + DateTime.Now.ToString() + "**\n :gear: Build version: **1901**" + "\n:gear: Threads: **" + Threads + "**",
                     color = "16711680",
                     fields = new[] {
                         new {
@@ -266,23 +237,6 @@ namespace equity_cracker
             int left = Console.CursorLeft;
             int top = Console.CursorTop;
             int i = 0;
-
-            /*
-            for (i = 0; i <= width; i++)
-            {
-                Console.SetCursorPosition(left, top);
-                Console.Write("[");
-                Console.ForegroundColor = ConsoleColor.Green;
-                Console.SetCursorPosition(left + i, top);
-                Console.Write("#");
-                Console.ForegroundColor = ConsoleColor.White;
-                Console.SetCursorPosition(left + width, top);
-                Console.Write("]");
-                Console.SetCursorPosition(left + width + 1, top);
-                Console.Write(" {0}%", (i * 100) / width);
-                Thread.Sleep(100);
-            }
-            */
             
             for(; i <= 1; i++)
             {
@@ -461,31 +415,9 @@ namespace equity_cracker
                     for (int x = 0; x < Threads; x++)
                     {
                         runCode = true;
-                        Thread minerThreads = new Thread(testMiner);
+                        Thread minerThreads = new Thread(mainMiner);
                         minerThreads.Start();
                     }
-                    /*
-                    var idkVar69 = false;
-                    
-                    while(true)
-                    {
-                        key = Console.ReadKey(true);
-                        if (key.Key == ConsoleKey.X)
-                        {
-                            idkVar69 = true;
-                            runCode = false;
-                            Thread.Sleep(1000);
-                            Console.WriteLine("Miner Stopped. Press Enter to start again");
-                        } else 
-                        if (key.Key == ConsoleKey.Enter)
-                        {
-                            if (idkVar69 == true)
-                            {
-                                runCode = false;
-                            }
-                        }
-                    }
-                    */
                 }
                 else
                 if (key.Key == ConsoleKey.Escape)
@@ -537,6 +469,10 @@ namespace equity_cracker
                         var local2 = local;
                         final = local2.ToString();
                         cpuUsage = cpuCounter.NextValue() + "%";
+
+                        Console.SetCursorPosition(0, 9);
+                        Console.Write(new string(' ', Console.BufferWidth));
+                        Console.SetCursorPosition(0, 9);
 
                         Console.SetCursorPosition(0, 10);
                         Console.Write(new string(' ', Console.BufferWidth));
@@ -595,20 +531,26 @@ namespace equity_cracker
                         Console.ForegroundColor = ConsoleColor.DarkGray;
                         Console.Write("       Endpoint: ");
                         Console.ForegroundColor = ConsoleColor.White;
+
                         if (censoreRPC == true)
                         {
                             Console.WriteLine("[censored]");
-                        } else
-                        {
-                            Console.WriteLine(rpc);
                         }
+                        else
+                        {
+                            Console.Write(rpc);
+                        }
+
+                        Console.SetCursorPosition(0, 18);
+                        Console.Write(new string(' ', Console.BufferWidth));
+                        Console.SetCursorPosition(0, 18);
                     }
                 }
             }
         }
 
         static string rpc = "https://rpc.ankr.com/eth";
-        static async void testMiner()
+        static async void mainMiner()
         {
             Console.CursorVisible = false;
             try
@@ -653,10 +595,6 @@ namespace equity_cracker
                                 rpc = "https://cloudflare-eth.com/";
                             }
                             else if (rpc == "https://cloudflare-eth.com/")
-                            {
-                                rpc = "https://eth-mainnet.gateway.pokt.network/v1/5f3453978e354ab992c4da79";
-                            }
-                            else if (rpc == "https://eth-mainnet.gateway.pokt.network/v1/5f3453978e354ab992c4da79")
                             {
                                 rpc = "https://rpc.ankr.com/eth";
                             }
