@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Configuration;
 using System.Threading.Tasks;
@@ -13,10 +13,13 @@ using System.Text;
 using System.Management;
 using System.Windows.Forms;
 using DiscordRPC;
+<<<<<<< HEAD
 using System.Linq;
 using ManagedCuda;
 using ManagedCuda.BasicTypes;
 using ManagedCuda.VectorTypes;
+=======
+>>>>>>> f3ffb39ed5873ede82c3b0528399fb1e9349dd5b
 
 namespace equity_cracker
 {
@@ -25,7 +28,11 @@ namespace equity_cracker
         public static DiscordRpcClient client;
 
         #region Vars
+<<<<<<< HEAD
         private static readonly object  consoleLock  = new object();
+=======
+        private static object  consoleLock  = new object();
+>>>>>>> f3ffb39ed5873ede82c3b0528399fb1e9349dd5b
         public  static Boolean runCode      = false;
         public  static int     hits         = 0;
         public  static int     earnedMoney  = 0;
@@ -56,26 +63,40 @@ namespace equity_cracker
 
                 client.OnReady += (sender, e) =>
                 {
+<<<<<<< HEAD
                     File.AppendAllText(logPath, $"[{DateTime.Now}] Received Ready from user {e.User.Username}{Environment.NewLine}");
+=======
+>>>>>>> f3ffb39ed5873ede82c3b0528399fb1e9349dd5b
                     //Console.WriteLine("Received Ready from user {0}", e.User.Username);
                 };
 
                 client.OnPresenceUpdate += (sender, e) =>
                 {
+<<<<<<< HEAD
                     File.AppendAllText(logPath, $"[{DateTime.Now}] Received Update! {e.Presence}{Environment.NewLine}");
+=======
+>>>>>>> f3ffb39ed5873ede82c3b0528399fb1e9349dd5b
                     //Console.WriteLine("Received Update! {0}", e.Presence);
                 };
 
                 client.OnError += (sender, e) =>
                 {
+<<<<<<< HEAD
                     File.AppendAllText(logPath, $"[{DateTime.Now}] Discord RPC Error! Error information: {e}{Environment.NewLine}");
+=======
+                    //client.Deinitialize();
+>>>>>>> f3ffb39ed5873ede82c3b0528399fb1e9349dd5b
                 };
 
                 client.Initialize();
 
                 client.SetPresence(new RichPresence()
                 {
+<<<<<<< HEAD
                     Details = $"Mining with {Threads} threads",
+=======
+                    Details = "Mining with " + Threads + " threads",
+>>>>>>> f3ffb39ed5873ede82c3b0528399fb1e9349dd5b
                     Assets = new Assets()
                     {
                         LargeImageKey = "equityw",
@@ -130,30 +151,47 @@ namespace equity_cracker
                     string modifiedString = secondLine.Replace(":", "-").Replace(" ", "_").Replace(".", "-");
                     modifiedString = modifiedString.Remove(0, 15);
 
+<<<<<<< HEAD
                     File.Move(logPath, Path.GetFullPath(Path.Combine(exePath, $@"..\..\logs\{modifiedString}.txt")));
+=======
+                    File.Move(logPath, Path.GetFullPath(Path.Combine(exePath, @"..\..\logs\" + modifiedString + ".txt")));
+>>>>>>> f3ffb39ed5873ede82c3b0528399fb1e9349dd5b
                 }
 
                 StringBuilder sb = new StringBuilder();
 
                 ManagementObjectSearcher searcher = new ManagementObjectSearcher("SELECT * FROM Win32_Processor");
+<<<<<<< HEAD
                 foreach (ManagementObject queryObj in searcher.Get().Cast<ManagementObject>())
+=======
+                foreach (ManagementObject queryObj in searcher.Get())
+>>>>>>> f3ffb39ed5873ede82c3b0528399fb1e9349dd5b
                 {
                     sb.AppendLine("CPU: " + queryObj["Name"]);
                 }
 
                 searcher = new ManagementObjectSearcher("SELECT * FROM Win32_OperatingSystem");
+<<<<<<< HEAD
                 foreach (ManagementObject queryObj in searcher.Get().Cast<ManagementObject>())
+=======
+                foreach (ManagementObject queryObj in searcher.Get())
+>>>>>>> f3ffb39ed5873ede82c3b0528399fb1e9349dd5b
                 {
                     sb.AppendLine("Operating system: " + queryObj["Caption"]);
                 }
 
                 searcher = new ManagementObjectSearcher("SELECT * FROM Win32_PhysicalMemory");
                 long totalMemory = 0;
+<<<<<<< HEAD
                 foreach (ManagementObject queryObj in searcher.Get().Cast<ManagementObject>())
+=======
+                foreach (ManagementObject queryObj in searcher.Get())
+>>>>>>> f3ffb39ed5873ede82c3b0528399fb1e9349dd5b
                 {
                     totalMemory += Convert.ToInt64(queryObj["Capacity"]);
                 }
                 totalMemory /= 1024;
+<<<<<<< HEAD
                 sb.AppendLine($"Memory: {totalMemory} MB");
 
                 File.AppendAllText(logPath, 
@@ -165,6 +203,18 @@ namespace equity_cracker
                     $"\n" +
                     $"\n" +
                     $"{sb}{Environment.NewLine}");
+=======
+                sb.AppendLine("Memory: " + totalMemory + " MB");
+
+                // 1 = DebugOption
+                // 2 = enableCustomRPC
+                // 3 = censoreRPC
+                // 4 = Threads
+                // 5 = cryptoToMine
+                // 6 = consoleRefreshRate
+                // 7 = discordWebhook
+                File.AppendAllText(logPath, "Software started\n=> Start time: " + DateTime.Now.ToString() + "\n=> Settings = 1/" + DebugOption + " 2/" + enableCustomRPC + " 3/" + censoreRPC + " 4/" + Threads + " 5/" + cryptoToMine + " 6/" + consoleRefreshRate + " 7/" + discordWebhook + "\n\n" + sb.ToString() + Environment.NewLine);
+>>>>>>> f3ffb39ed5873ede82c3b0528399fb1e9349dd5b
             }
             catch (Exception e)
             {
@@ -174,14 +224,18 @@ namespace equity_cracker
                 }
             }
 
+<<<<<<< HEAD
             string recapEnabledString = "Disabled";
             if (recapEnabled == true) { recapEnabledString = "Enabled"; }
 
+=======
+>>>>>>> f3ffb39ed5873ede82c3b0528399fb1e9349dd5b
             if (discordWebhook == true)
             {
                 var embed = new
                 {
                     title = "EquityCracker v3 [started]",
+<<<<<<< HEAD
                     color = "16711680",
                     fields = new[] {
                         new {
@@ -202,6 +256,27 @@ namespace equity_cracker
                             value = $":alarm_clock: {DateTime.Now}",
                             inline = false
                         },
+=======
+                    //description = "‎",
+                    description = "__**Current Settings**__\n\n:alarm_clock: Start time: **" + DateTime.Now.ToString() + "**\n :gear: Build version: **1901**" + "\n:gear: Threads: **" + Threads + "**",
+                    color = "16711680",
+                    fields = new[] {
+                        new {
+                            name = "Start time",
+                            value = ":alarm_clock: " + DateTime.Now.ToString(),
+                            inline = false
+                        },
+                        new {
+                            name = "Build version",
+                            value = ":gear: 1901",
+                            inline = false
+                        },
+                        new {
+                            name = "Threads",
+                            value = ":gear: " + Threads,
+                            inline = false
+                        }
+>>>>>>> f3ffb39ed5873ede82c3b0528399fb1e9349dd5b
                     }
                 };
 
@@ -218,11 +293,19 @@ namespace equity_cracker
 
                     if (result.IsSuccessStatusCode)
                     {
+<<<<<<< HEAD
                         File.AppendAllText(logPath, $"[{DateTime.Now}] Successfully sent the welcome webhook message.{Environment.NewLine}");
                     }
                     else
                     {
                         File.AppendAllText(logPath, $"[{DateTime.Now}] An error occur while sending the welcome webhook message: {result.StatusCode}{Environment.NewLine}");
+=======
+                        File.AppendAllText(logPath, "[" + DateTime.Now + "] " + "Successfully sent the welcome webhook message." + Environment.NewLine);
+                    }
+                    else
+                    {
+                        File.AppendAllText(logPath, "[" + DateTime.Now + "] " + "An error occur while sending the welcome webhook message: " + result.StatusCode);
+>>>>>>> f3ffb39ed5873ede82c3b0528399fb1e9349dd5b
                     }
                 }
             }
@@ -242,7 +325,11 @@ namespace equity_cracker
                 Console.Write(c);
                 Thread.Sleep(10);
             }
+<<<<<<< HEAD
             string undertitle = "Version: v3.0.1 - build 2009";
+=======
+            string undertitle = "Version: v3.0.1 - build 1901";
+>>>>>>> f3ffb39ed5873ede82c3b0528399fb1e9349dd5b
             Console.CursorVisible = false;
             int width = 30;
             int left = Console.CursorLeft;
@@ -251,11 +338,15 @@ namespace equity_cracker
             
             for(; i <= 1; i++)
             {
+<<<<<<< HEAD
                 if(i == 1)
                 {
                     Thread t = new Thread(BackgroundThread);
                     t.Start();
                 }
+=======
+                //i++;
+>>>>>>> f3ffb39ed5873ede82c3b0528399fb1e9349dd5b
                 Console.SetCursorPosition(left, top);
                 Console.Write("[");
                 Console.ForegroundColor = ConsoleColor.Green;
@@ -269,6 +360,27 @@ namespace equity_cracker
                 Thread.Sleep(100);
             }
 
+<<<<<<< HEAD
+=======
+            Thread t = new Thread(BackgroundThread);
+            t.Start();
+
+            for (i = 0; i <= 5; i++)
+            {
+                Console.SetCursorPosition(left, top);
+                Console.Write("[");
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.SetCursorPosition(left + i, top);
+                Console.Write("#");
+                Console.ForegroundColor = ConsoleColor.White;
+                Console.SetCursorPosition(left + width, top);
+                Console.Write("]");
+                Console.SetCursorPosition(left + width + 1, top);
+                Console.Write(" {0}%", (i * 100) / width);
+                Thread.Sleep(60);
+            }
+
+>>>>>>> f3ffb39ed5873ede82c3b0528399fb1e9349dd5b
             Console.SetCursorPosition(0, 8);
             Console.Write(new string(' ', Console.BufferWidth));
             Console.SetCursorPosition(0, 11);
@@ -295,12 +407,20 @@ namespace equity_cracker
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.Write("There was an error while checking hit saving.");
                 Console.ForegroundColor = ConsoleColor.White;
+<<<<<<< HEAD
                 Console.WriteLine("Error: {0}", e);
+=======
+                Console.WriteLine("Error: " + e);
+>>>>>>> f3ffb39ed5873ede82c3b0528399fb1e9349dd5b
             }
 
             try
             {
+<<<<<<< HEAD
                 File.AppendAllText(testPath, $"[TEST HIT] Private Key: 0x00000000000000000000 {Environment.NewLine}");
+=======
+                File.AppendAllText(testPath, "[TEST HIT] Private Key: " + "0x00000000000000000000" + Environment.NewLine);
+>>>>>>> f3ffb39ed5873ede82c3b0528399fb1e9349dd5b
                 Console.SetCursorPosition(0, 8);
                 Console.Write(new string(' ', Console.BufferWidth));
                 Console.SetCursorPosition(0, 8);
@@ -313,7 +433,11 @@ namespace equity_cracker
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.Write("There was an error while checking hit saving.");
                 Console.ForegroundColor = ConsoleColor.White;
+<<<<<<< HEAD
                 Console.WriteLine("Error: {0}", e);
+=======
+                Console.WriteLine("Error: " + e);
+>>>>>>> f3ffb39ed5873ede82c3b0528399fb1e9349dd5b
             }
 
             for (i = 0; i <= width; i++)
@@ -412,7 +536,11 @@ namespace equity_cracker
                     for (int x = 0; x < Threads; x++)
                     {
                         runCode = true;
+<<<<<<< HEAD
                         Thread minerThreads = new Thread(MainMiner);
+=======
+                        Thread minerThreads = new Thread(mainMiner);
+>>>>>>> f3ffb39ed5873ede82c3b0528399fb1e9349dd5b
                         minerThreads.Start();
                     }
                 }
@@ -435,8 +563,14 @@ namespace equity_cracker
         }
 
         static string address;
+<<<<<<< HEAD
         static TimeSpan duration;
         static Nethereum.Hex.HexTypes.HexBigInteger balance;
+=======
+        static System.TimeSpan duration;
+        static Nethereum.Hex.HexTypes.HexBigInteger balance;
+
+>>>>>>> f3ffb39ed5873ede82c3b0528399fb1e9349dd5b
         static string final;
         static string cpuUsage;
         static void BackgroundThread()
@@ -445,6 +579,7 @@ namespace equity_cracker
             {
                 if (runCode)
                 {
+<<<<<<< HEAD
                     try
                     {
                         Console.Title = $"EquityCracker | Mining.. | Hits: {hits} | Earned money: ${earnedMoney}";
@@ -453,12 +588,27 @@ namespace equity_cracker
 
                         cpuCounter = new PerformanceCounter("Processor", "% Processor Time", "_Total");
 
+=======
+                    Console.Title = "EquityCracker | Mining.. | Hits: " + hits + " | Earned money: $" + earnedMoney;
+                    Console.WriteLine("ok");
+                    PerformanceCounter cpuCounter;
+                    PerformanceCounter ramCounter;
+
+                    cpuCounter = new PerformanceCounter("Processor", "% Processor Time", "_Total");
+                    ramCounter = new PerformanceCounter("Memory", "Available MBytes");
+                    while (true)
+                    {
+>>>>>>> f3ffb39ed5873ede82c3b0528399fb1e9349dd5b
                         if (runCode == false)
                         {
                             Console.ReadLine();
                         }
                         var firstCheck = checks;
+<<<<<<< HEAD
                         Thread.Sleep(consoleRefreshRate);
+=======
+                        Thread.Sleep(1000);
+>>>>>>> f3ffb39ed5873ede82c3b0528399fb1e9349dd5b
                         var secondCheck = checks;
                         var local = secondCheck - firstCheck;
                         var local2 = local;
@@ -539,6 +689,7 @@ namespace equity_cracker
                         Console.SetCursorPosition(0, 18);
                         Console.Write(new string(' ', Console.BufferWidth));
                         Console.SetCursorPosition(0, 18);
+<<<<<<< HEAD
 
                         Console.SetCursorPosition(0, 19);
                         Console.Write(new string(' ', Console.BufferWidth));
@@ -560,13 +711,19 @@ namespace equity_cracker
                             File.AppendAllText(logPath, $"[{DateTime.Now}] Dialog exit after error{Environment.NewLine}");
                             Environment.Exit(002);
                         }
+=======
+>>>>>>> f3ffb39ed5873ede82c3b0528399fb1e9349dd5b
                     }
                 }
             }
         }
 
         static string rpc = "https://rpc.ankr.com/eth";
+<<<<<<< HEAD
         static async void MainMiner()
+=======
+        static async void mainMiner()
+>>>>>>> f3ffb39ed5873ede82c3b0528399fb1e9349dd5b
         {
             Console.CursorVisible = false;
             try
@@ -579,7 +736,11 @@ namespace equity_cracker
                 {
                     while (runCode)
                     {
+<<<<<<< HEAD
                         var web3 = new Web3(rpc);
+=======
+                        var web3 = new Nethereum.Web3.Web3(rpc);
+>>>>>>> f3ffb39ed5873ede82c3b0528399fb1e9349dd5b
                         var startTime = DateTime.Now;
                         var rng = new RNGCryptoServiceProvider();
                         var privateKeyBytes = new byte[32];
@@ -588,6 +749,10 @@ namespace equity_cracker
                         var endTime = DateTime.Now;
                         duration = endTime - startTime;
                         var account = new Nethereum.Web3.Accounts.Account(privateKey);
+<<<<<<< HEAD
+=======
+                        //var address = "0x1b3cb81e51011b549d78bf720b0d924ac763a7c2";
+>>>>>>> f3ffb39ed5873ede82c3b0528399fb1e9349dd5b
                         address = account.Address;
                         decimal etherAmount;
                         try
@@ -625,15 +790,20 @@ namespace equity_cracker
                             try
                             {
                                 runCode = false;
+<<<<<<< HEAD
 
                                 var url = "https://min-api.cryptocompare.com/data/price?fsym=ETH&tsyms=USD";
 
+=======
+                                var url = "https://min-api.cryptocompare.com/data/price?fsym=ETH&tsyms=USD";
+>>>>>>> f3ffb39ed5873ede82c3b0528399fb1e9349dd5b
                                 using (var client = new HttpClient())
                                 {
                                     var response = client.GetAsync(url).Result;
                                     var price = JsonConvert.DeserializeObject<dynamic>(response.Content.ReadAsStringAsync().Result);
                                     decimal etherPrice = price.USD;
 
+<<<<<<< HEAD
                                     var etherAmountTempString = etherAmount.ToString();
                                     var etherPriceTempString = etherPrice.ToString();
 
@@ -643,6 +813,21 @@ namespace equity_cracker
                                     Console.WriteLine(etherAmountTempString + " | " + etherPriceTempString);
                                     Int32.TryParse(etherAmountTempString.ToString(), out int etherAmountOut);
                                     Int32.TryParse(etherPriceTempString.ToString(), out int etherPriceOut);
+=======
+                                    //var etherAmountOut = Convert.ToInt64(etherAmount);
+                                    //var etherPriceIdk = Convert.ToInt64(etherPrice);
+                                    //Console.WriteLine(etherAmount + " | " + etherPrice);
+                                    //Console.ReadLine();
+                                    var etherAmountTempString = etherAmount.ToString();
+                                    var etherPriceTempString = etherPrice.ToString();
+                                    etherAmountTempString = etherAmountTempString.Replace(",", ".");
+                                    etherPriceTempString = etherPriceTempString.Replace(",", ".");
+                                    Console.WriteLine(etherAmountTempString + " | " + etherPriceTempString);
+                                    int etherAmountOut;
+                                    int etherPriceOut;
+                                    Int32.TryParse(etherAmountTempString.ToString(), out etherAmountOut);
+                                    Int32.TryParse(etherPriceTempString.ToString(), out etherPriceOut);
+>>>>>>> f3ffb39ed5873ede82c3b0528399fb1e9349dd5b
 
                                     walletValue = etherAmountOut * etherPriceOut;
                                     earnedMoney += walletValue;
@@ -656,7 +841,11 @@ namespace equity_cracker
 
                             string path = Path.GetFullPath(Path.Combine(exePath, @"..\..\hits.txt"));
 
+<<<<<<< HEAD
                             var tempweb3 = new Web3("https://rpc.ankr.com/eth");
+=======
+                            var tempweb3 = new Nethereum.Web3.Web3("https://rpc.ankr.com/eth");
+>>>>>>> f3ffb39ed5873ede82c3b0528399fb1e9349dd5b
                             try
                             {
                                 balance = await tempweb3.Eth.GetBalance.SendRequestAsync(address);
@@ -664,7 +853,11 @@ namespace equity_cracker
                             } catch (Exception)
                             {
                                 File.AppendAllText(path,
+<<<<<<< HEAD
                                         $"[Possible Ghost Hit] Private Key: {privateKey} | Bal: {etherAmount2} {Environment.NewLine}");
+=======
+                                        "[Possible Ghost Hit] Private Key: " + privateKey + " | Bal: " + etherAmount2 + Environment.NewLine);
+>>>>>>> f3ffb39ed5873ede82c3b0528399fb1e9349dd5b
                                 break;
                             }
 
@@ -683,21 +876,38 @@ namespace equity_cracker
                                 Console.WriteLine("Something went wrong with saving hits! Please save the private key down below!");
                                 Console.WriteLine("If you want to support us, you can donate to this ethereum address: 0xe0f37a884658556d7577a5d34184f8054a4f752e");
                                 Console.WriteLine();
+<<<<<<< HEAD
                                 Console.WriteLine($"Private Key: {privateKey} | Bal: {etherAmount2}");
                                 Console.ReadLine();
                             }
 
                             Console.Title = $"EquityCracker | Mining.. | Hits: {hits} | Earned money: ${earnedMoney}";
+=======
+                                Console.WriteLine("Private Key: " + privateKey + " | Bal: " + etherAmount2);
+                                Console.ReadLine();
+                            }
+
+                            Console.Title = "EquityCracker | Mining.. | Hits: " + hits + " | Earned money: $" + earnedMoney;
+>>>>>>> f3ffb39ed5873ede82c3b0528399fb1e9349dd5b
                             try
                             {
 
                                 Console.ForegroundColor= ConsoleColor.Green;
+<<<<<<< HEAD
                                 Console.WriteLine($"YOU GOT A HIT! | PrivateKey: {privateKey} | Bal: {etherAmount2}");
                                 earnedMoney += walletValue;
                                 Console.ForegroundColor = ConsoleColor.White;
                                 File.AppendAllText(path,
                                         $"Private Key: {privateKey} {Environment.NewLine}");
                                 Console.Title = $"EquityCracker | Mining.. | Hits: {hits} | Earned money: ${earnedMoney}";
+=======
+                                Console.WriteLine("YOU GOT A HIT! | PrivateKey: " + privateKey + " | Bal: " + etherAmount2);
+                                earnedMoney = earnedMoney + walletValue;
+                                Console.ForegroundColor = ConsoleColor.White;
+                                File.AppendAllText(path,
+                                        "Private Key: " + privateKey + Environment.NewLine);
+                                Console.Title = "EquityCracker | Mining.. | Hits: " + hits + " | Earned money: $" + earnedMoney;
+>>>>>>> f3ffb39ed5873ede82c3b0528399fb1e9349dd5b
                             } catch (Exception)
                             {
                                 runCode = false;
@@ -705,7 +915,11 @@ namespace equity_cracker
                                 Console.WriteLine("Something went wrong with saving hits! Please save the private key down below!");
                                 Console.WriteLine("If you want to support us, you can donate to this ethereum address: 0xe0f37a884658556d7577a5d34184f8054a4f752e");
                                 Console.WriteLine();
+<<<<<<< HEAD
                                 Console.WriteLine($"Private Key: {privateKey} | Bal: {etherAmount2}");
+=======
+                                Console.WriteLine("Private Key: " + privateKey + " | Bal: " + etherAmount2);
+>>>>>>> f3ffb39ed5873ede82c3b0528399fb1e9349dd5b
                                 Console.ReadLine();
                             }
                         }
@@ -718,10 +932,15 @@ namespace equity_cracker
 
         }
 
+<<<<<<< HEAD
         static async Task Main()
         {
             TestCuda();
             Console.ReadLine ();
+=======
+        public static async Task Main()
+        {
+>>>>>>> f3ffb39ed5873ede82c3b0528399fb1e9349dd5b
             Initialize();
             handler = new ConsoleEventDelegate(ConsoleEventCallback);
             SetConsoleCtrlHandler(handler, true);
@@ -735,7 +954,11 @@ namespace equity_cracker
         {
             if (eventType == 2)
             {
+<<<<<<< HEAD
                 File.AppendAllText(logPath, $"[{DateTime.Now}] Stopped and closed miner {Environment.NewLine}");
+=======
+                File.AppendAllText(logPath, "[" + DateTime.Now + "] Stopped and closed miner" + Environment.NewLine);
+>>>>>>> f3ffb39ed5873ede82c3b0528399fb1e9349dd5b
             }
             return false;
         }
@@ -744,5 +967,51 @@ namespace equity_cracker
         private delegate bool ConsoleEventDelegate(int eventType);
         [DllImport("kernel32.dll", SetLastError = true)]
         private static extern bool SetConsoleCtrlHandler(ConsoleEventDelegate callback, bool add);
+<<<<<<< HEAD
+=======
+
+        public static void Write(string text, ConsoleColor color, string duration, string proxy)
+        {
+            lock (consoleLock)
+            {
+                Console.ForegroundColor = color;
+                if (duration != "no")
+                {
+                    Console.Write(text);
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.Write(" | Generation time: " + duration);
+                    Console.WriteLine(" | Proxy: " + proxy);
+                } else
+                {
+                    Console.WriteLine(text);
+                }
+
+                Console.ForegroundColor = ConsoleColor.White;
+            }
+
+
+        }
+    }
+
+    public class MyException : Exception
+    {
+        public MyException() : base() { }
+        public MyException(string message) : base(message) { }
+        public MyException(string message, Exception e) : base(message, e) { }
+
+        private string strExtraInfo;
+        public string ExtraErrorInfo
+        {
+            get
+            {
+                return strExtraInfo;
+            }
+
+            set
+            {
+                strExtraInfo = value;
+            }
+        }
+>>>>>>> f3ffb39ed5873ede82c3b0528399fb1e9349dd5b
     }
 }
