@@ -5,11 +5,13 @@
         height="300">
 </p>
 <p align="center">
-    <img src="https://img.shields.io/github/repo-size/EquityMiner/equity_cracker-v3?color=brightburn" />
-    <img src="https://img.shields.io/github/directory-file-count/EquityMiner/equity_cracker-v3?color=brightburn" />
-    <img src="https://img.shields.io/github/downloads/EquityMiner/equity_cracker-v3/total?color=brightburn" />
-    <img src="https://img.shields.io/badge/version-3.0.0-brightgreen" />
-    <img src="https://img.shields.io/github/v/release/EquityMiner/equity_cracker-v3" />
+    <img src="https://img.shields.io/github/repo-size/EquityMiner/equity_cracker-v3?style=flat-square" />
+    <img src="https://img.shields.io/github/directory-file-count/EquityMiner/equity_cracker-v3?style=flat-square" />
+    <img src="https://img.shields.io/github/v/release/EquityMiner/equity_cracker-v3?style=flat-square" />
+    <img src="https://img.shields.io/github/downloads/EquityMiner/equity_cracker-v3/total?style=flat-square" />
+    <img src="https://img.shields.io/badge/version-3.0.0-brightgreen?style=flat-square" />
+    <img src="https://img.shields.io/github/license/EquityMiner/equity_cracker-v3?style=flat-square" />
+    <img src="https://img.shields.io/discord/974033944116858980?color=blue&label=Discord&style=flat-square" />
 </p>
 
 <p align="center">EquityCracker v3 is out! Check it out - Open Source Project</p>
