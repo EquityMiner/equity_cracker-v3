@@ -14,9 +14,6 @@ using System.Management;
 using System.Windows.Forms;
 using DiscordRPC;
 using System.Linq;
-using ManagedCuda;
-using ManagedCuda.BasicTypes;
-using ManagedCuda.VectorTypes;
 
 namespace equity_cracker
 {
@@ -720,8 +717,6 @@ namespace equity_cracker
 
         static async Task Main()
         {
-            TestCuda();
-            Console.ReadLine ();
             Initialize();
             handler = new ConsoleEventDelegate(ConsoleEventCallback);
             SetConsoleCtrlHandler(handler, true);
