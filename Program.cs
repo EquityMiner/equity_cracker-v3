@@ -1,19 +1,19 @@
-﻿using System;
-using System.IO;
-using System.Configuration;
-using System.Threading.Tasks;
-using System.Security.Cryptography;
-using System.Runtime.InteropServices;
-using System.Threading;
-using System.Diagnostics;
-using System.Net.Http;
-using Newtonsoft.Json;
-using Nethereum.Web3;
-using System.Text;
-using System.Management;
-using System.Windows.Forms;
 using DiscordRPC;
+using Nethereum.Web3;
+using Newtonsoft.Json;
+using System;
+using System.Configuration;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Management;
+using System.Net.Http;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Windows.Forms;
 
 namespace equity_cracker
 {
@@ -22,30 +22,30 @@ namespace equity_cracker
         public static DiscordRpcClient client;
 
         #region Vars
-        private static readonly object  consoleLock  = new object();
-        public  static Boolean runCode      = false;
-        public  static int     hits         = 0;
-        public  static int     earnedMoney  = 0;
-        public  static int     checks       = 0;
-        public  static int     proxyChangerValue = 0;
-        public  static Boolean DebugOption  = Convert.ToBoolean(ConfigurationManager.AppSettings["debug"]);
-        public  static Boolean enableCustomRPC = Convert.ToBoolean(ConfigurationManager.AppSettings["enableCustomRPC"]);
-        public  static Boolean censoreRPC   = Convert.ToBoolean(ConfigurationManager.AppSettings["censoreRPC"]);
-        public  static int     Threads      = Convert.ToInt16(ConfigurationManager.AppSettings["threads"]);
-        public  static string  cryptoToMine = Convert.ToString(ConfigurationManager.AppSettings["cryptoToMine"]);
-        public  static string  customRPC    = Convert.ToString(ConfigurationManager.AppSettings["customRPC"]);
-        public  static string  webhookUrl    = Convert.ToString(ConfigurationManager.AppSettings["webhookUrl"]);
-        public  static int     consoleRefreshRate = Convert.ToInt16(ConfigurationManager.AppSettings["consoleRefreshRate"]);
-        public  static Boolean discordWebhook = Convert.ToBoolean(ConfigurationManager.AppSettings["discordWebhook"]);
-        public  static Boolean recapEnabled = Convert.ToBoolean(ConfigurationManager.AppSettings["recapEnabled"]);
-        public  static string  recapSecondDelay = Convert.ToString(ConfigurationManager.AppSettings["recapSecondDelay"]);
+        private static readonly object consoleLock = new object();
+        public static bool runCode = false;
+        public static int hits = 0;
+        public static int earnedMoney = 0;
+        public static int checks = 0;
+        public static int proxyChangerValue = 0;
+        public static bool DebugOption = Convert.ToBoolean(ConfigurationManager.AppSettings["debug"]);
+        public static bool enableCustomRPC = Convert.ToBoolean(ConfigurationManager.AppSettings["enableCustomRPC"]);
+        public static bool censoreRPC = Convert.ToBoolean(ConfigurationManager.AppSettings["censoreRPC"]);
+        public static int Threads = Convert.ToInt16(ConfigurationManager.AppSettings["threads"]);
+        public static string cryptoToMine = Convert.ToString(ConfigurationManager.AppSettings["cryptoToMine"]);
+        public static string customRPC = Convert.ToString(ConfigurationManager.AppSettings["customRPC"]);
+        public static string webhookUrl = Convert.ToString(ConfigurationManager.AppSettings["webhookUrl"]);
+        public static int consoleRefreshRate = Convert.ToInt16(ConfigurationManager.AppSettings["consoleRefreshRate"]);
+        public static bool discordWebhook = Convert.ToBoolean(ConfigurationManager.AppSettings["discordWebhook"]);
+        public static bool recapEnabled = Convert.ToBoolean(ConfigurationManager.AppSettings["recapEnabled"]);
+        public static string recapSecondDelay = Convert.ToString(ConfigurationManager.AppSettings["recapSecondDelay"]);
 
-        public  static string exePath = System.Reflection.Assembly.GetEntryAssembly().Location;
-        public  static string logPath = Path.GetFullPath(Path.Combine(exePath, @"..\..\logs\latest.txt"));
+        public static string exePath = System.Reflection.Assembly.GetEntryAssembly().Location;
+        public static string logPath = Path.GetFullPath(Path.Combine(exePath, @"..\..\logs\latest.txt"));
 
         #endregion
 
-        static void Initialize()
+        private static void Initialize()
         {
             try
             {
@@ -68,7 +68,7 @@ namespace equity_cracker
                     File.AppendAllText(logPath, $"[{DateTime.Now}] Discord RPC Error! Error information: {e}{Environment.NewLine}");
                 };
 
-                client.Initialize();
+                _ = client.Initialize();
 
                 client.SetPresence(new RichPresence()
                 {
@@ -82,15 +82,16 @@ namespace equity_cracker
 
                     Buttons = new DiscordRPC.Button[] { }
                 });
-                client.UpdateStartTime();
-            } catch(Exception ex)
+                _ = client.UpdateStartTime();
+            }
+            catch (Exception ex)
             {
                 File.AppendAllText(logPath, ex.ToString());
                 client.Deinitialize();
             }
         }
 
-        public static Task NewMenu()
+        public static void NewMenu()
         {
             int originalWidth = Console.WindowWidth;
             int originalHeight = Console.WindowHeight;
@@ -101,7 +102,7 @@ namespace equity_cracker
                 {
                     if (Console.WindowWidth != originalWidth || Console.WindowHeight != originalHeight)
                     {
-                        MessageBox.Show("Please don't change the window size while loading the miner..", "EquityMiner v3", MessageBoxButtons.OK);
+                        _ = MessageBox.Show("Please don't change the window size while loading the miner..", "EquityMiner v3", MessageBoxButtons.OK);
 
                         originalWidth = Console.WindowWidth;
                         originalHeight = Console.WindowHeight;
@@ -116,7 +117,7 @@ namespace equity_cracker
             {
                 if (!Directory.Exists(Path.GetFullPath(Path.Combine(exePath, @"..\..\logs\"))))
                 {
-                    Directory.CreateDirectory(Path.GetFullPath(Path.Combine(exePath, @"..\..\logs\")));
+                    _ = Directory.CreateDirectory(Path.GetFullPath(Path.Combine(exePath, @"..\..\logs\")));
                 }
 
                 if (File.Exists(logPath))
@@ -135,13 +136,13 @@ namespace equity_cracker
                 ManagementObjectSearcher searcher = new ManagementObjectSearcher("SELECT * FROM Win32_Processor");
                 foreach (ManagementObject queryObj in searcher.Get().Cast<ManagementObject>())
                 {
-                    sb.AppendLine("CPU: " + queryObj["Name"]);
+                    _ = sb.AppendLine("CPU: " + queryObj["Name"]);
                 }
 
                 searcher = new ManagementObjectSearcher("SELECT * FROM Win32_OperatingSystem");
                 foreach (ManagementObject queryObj in searcher.Get().Cast<ManagementObject>())
                 {
-                    sb.AppendLine("Operating system: " + queryObj["Caption"]);
+                    _ = sb.AppendLine("Operating system: " + queryObj["Caption"]);
                 }
 
                 searcher = new ManagementObjectSearcher("SELECT * FROM Win32_PhysicalMemory");
@@ -151,9 +152,9 @@ namespace equity_cracker
                     totalMemory += Convert.ToInt64(queryObj["Capacity"]);
                 }
                 totalMemory /= 1024;
-                sb.AppendLine($"Memory: {totalMemory} MB");
+                _ = sb.AppendLine($"Memory: {totalMemory} MB");
 
-                File.AppendAllText(logPath, 
+                File.AppendAllText(logPath,
                     $"Software started" +
                     $"\n" +
                     $"=> Start time: {DateTime.Now}" +
@@ -167,7 +168,7 @@ namespace equity_cracker
             {
                 if (DebugOption == true)
                 {
-                   Console.WriteLine(e.Message);
+                    Console.WriteLine(e.Message);
                 }
             }
 
@@ -207,11 +208,11 @@ namespace equity_cracker
                     embeds = new[] { embed }
                 };
 
-                var json = JsonConvert.SerializeObject(message);
+                string json = JsonConvert.SerializeObject(message);
 
-                using (var client = new HttpClient())
+                using (HttpClient client = new HttpClient())
                 {
-                    var result = client.PostAsync(webhookUrl, new StringContent(json, Encoding.UTF8, "application/json")).Result;
+                    HttpResponseMessage result = client.PostAsync(webhookUrl, new StringContent(json, Encoding.UTF8, "application/json")).Result;
 
                     if (result.IsSuccessStatusCode)
                     {
@@ -245,10 +246,10 @@ namespace equity_cracker
             int left = Console.CursorLeft;
             int top = Console.CursorTop;
             int i = 0;
-            
-            for(; i <= 1; i++)
+
+            for (; i <= 1; i++)
             {
-                if(i == 1)
+                if (i == 1)
                 {
                     Thread t = new Thread(BackgroundThread);
                     t.Start();
@@ -262,7 +263,7 @@ namespace equity_cracker
                 Console.SetCursorPosition(left + width, top);
                 Console.Write("]");
                 Console.SetCursorPosition(left + width + 1, top);
-                Console.Write(" {0}%", (i * 100) / width);
+                Console.Write(" {0}%", i * 100 / width);
                 Thread.Sleep(100);
             }
 
@@ -273,13 +274,13 @@ namespace equity_cracker
             Console.Write("Checking Hit saving..");
             Console.ForegroundColor = ConsoleColor.White;
 
-            var testExePath = System.Reflection.Assembly.GetEntryAssembly().Location;
+            string testExePath = System.Reflection.Assembly.GetEntryAssembly().Location;
 
             string testPath = Path.GetFullPath(Path.Combine(testExePath, @"..\..\hits.txt"));
 
             try
             {
-                if (!(File.Exists(testPath)))
+                if (!File.Exists(testPath))
                 {
                     using (FileStream fs = File.Create(testPath)) { };
                 }
@@ -302,7 +303,7 @@ namespace equity_cracker
                 Console.Write(new string(' ', Console.BufferWidth));
                 Console.SetCursorPosition(0, 8);
             }
-            catch(Exception e) 
+            catch (Exception e)
             {
                 Console.SetCursorPosition(0, 8);
                 Console.Write(new string(' ', Console.BufferWidth));
@@ -324,7 +325,7 @@ namespace equity_cracker
                 Console.SetCursorPosition(left + width, top);
                 Console.Write("]");
                 Console.SetCursorPosition(left + width + 1, top);
-                Console.Write(" {0}%", (i * 100) / width);
+                Console.Write(" {0}%", i * 100 / width);
                 Thread.Sleep(100);
             }
 
@@ -405,6 +406,7 @@ namespace equity_cracker
                 ConsoleKeyInfo key = Console.ReadKey(true);
                 if (key.Key == ConsoleKey.Enter)
                 {
+                    Console.WriteLine("-> Starting the Miner, this could take few seconds..");
                     monitorThread.Abort();
                     for (int x = 0; x < Threads; x++)
                     {
@@ -416,29 +418,31 @@ namespace equity_cracker
                 else
                 if (key.Key == ConsoleKey.Escape)
                 {
-                    Console.ForegroundColor= ConsoleColor.Red;
+                    Console.ForegroundColor = ConsoleColor.Red;
                     Console.WriteLine("Exiting..");
                     Thread.Sleep(2000);
                     Environment.Exit(0);
-                } else
+                }
+                else
                 if (key.Key == ConsoleKey.C)
                 {
-                    var exePath = System.Reflection.Assembly.GetEntryAssembly().Location;
+                    string exePath = System.Reflection.Assembly.GetEntryAssembly().Location;
 
                     string path = Path.GetFullPath(Path.Combine(exePath, @"..\..\config\settings.config"));
-                    Process.Start("notepad.exe", path);
+                    _ = Process.Start("notepad.exe", path);
                 }
             }
         }
 
-        static string address;
-        static TimeSpan duration;
-        static Nethereum.Hex.HexTypes.HexBigInteger balance;
-        static string final;
-        static string cpuUsage;
-        static void BackgroundThread()
+        private static string address;
+        private static TimeSpan duration;
+        private static Nethereum.Hex.HexTypes.HexBigInteger balance;
+        private static string final;
+        private static string cpuUsage;
+
+        private static void BackgroundThread()
         {
-            while(true)
+            while (true)
             {
                 if (runCode)
                 {
@@ -452,13 +456,13 @@ namespace equity_cracker
 
                         if (runCode == false)
                         {
-                            Console.ReadLine();
+                            _ = Console.ReadLine();
                         }
-                        var firstCheck = checks;
+                        int firstCheck = checks;
                         Thread.Sleep(consoleRefreshRate);
-                        var secondCheck = checks;
-                        var local = secondCheck - firstCheck;
-                        var local2 = local;
+                        int secondCheck = checks;
+                        int local = secondCheck - firstCheck;
+                        int local2 = local;
                         final = local2.ToString();
                         cpuUsage = cpuCounter.NextValue() + "%";
 
@@ -544,7 +548,8 @@ namespace equity_cracker
                         Console.SetCursorPosition(0, 20);
                         Console.Write(new string(' ', Console.BufferWidth));
                         Console.SetCursorPosition(0, 20);
-                    } catch (Exception e)
+                    }
+                    catch (Exception e)
                     {
                         File.AppendAllText(logPath, $"[{DateTime.Now}] Error while Main Task: {e}{Environment.NewLine}");
                         DialogResult result = MessageBox.Show("There was an critical error in a main task for displaying! Continuing can cause damage to the program or to your PC, do you still want to continue?", "EquityMiner | Error Report", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
@@ -562,29 +567,40 @@ namespace equity_cracker
             }
         }
 
-        static string rpc = "https://rpc.ankr.com/eth";
-        static async void MainMiner()
+        private static string rpc = "Loading..";
+
+        private static async void MainMiner()
         {
+            int lineIndex = 0;
+            string[] lines;
+            string pathO = Path.GetFullPath(Path.Combine(exePath, @"..\..\endpoints.txt"));
+            if (File.Exists(pathO))
+            {
+                lines = File.ReadAllLines(pathO);
+            }
+            else
+            {
+                await EquityThings.DownloadFile("https://raw.githubusercontent.com/EquityMiner/equity_cracker-v3/6de51f851d711ffab4513acece3cd8c680246dd2/endpoints.txt", pathO);
+                lines = File.ReadAllLines(pathO);
+            };
+            rpc = lines[0];
             Console.CursorVisible = false;
             try
             {
-                if (enableCustomRPC == true)
-                {
-                    rpc = customRPC;
-                }
+                int errorsCount = 0;
                 while (true)
                 {
                     while (runCode)
                     {
-                        var web3 = new Web3(rpc);
-                        var startTime = DateTime.Now;
-                        var rng = new RNGCryptoServiceProvider();
-                        var privateKeyBytes = new byte[32];
+                        Web3 web3 = new Web3(lines[0]);
+                        DateTime startTime = DateTime.Now;
+                        RNGCryptoServiceProvider rng = new RNGCryptoServiceProvider();
+                        byte[] privateKeyBytes = new byte[32];
                         rng.GetBytes(privateKeyBytes);
-                        var privateKey = BitConverter.ToString(privateKeyBytes).Replace("-", "").ToLower();
-                        var endTime = DateTime.Now;
+                        string privateKey = BitConverter.ToString(privateKeyBytes).Replace("-", "").ToLower();
+                        DateTime endTime = DateTime.Now;
                         duration = endTime - startTime;
-                        var account = new Nethereum.Web3.Accounts.Account(privateKey);
+                        Nethereum.Web3.Accounts.Account account = new Nethereum.Web3.Accounts.Account(privateKey);
                         address = account.Address;
                         decimal etherAmount;
                         try
@@ -594,21 +610,21 @@ namespace equity_cracker
                         }
                         catch (Exception)
                         {
-                            if (enableCustomRPC == true)
+                            errorsCount++;
+                            if(errorsCount >= 3)
                             {
-                                continue;
-                            } else
-                            if (rpc == "https://rpc.ankr.com/eth")
-                            {
-                                rpc = "https://eth.llamarpc.com";
-                            }
-                            else if (rpc == "https://eth.llamarpc.com")
-                            {
-                                rpc = "https://cloudflare-eth.com/";
-                            }
-                            else if (rpc == "https://cloudflare-eth.com/")
-                            {
-                                rpc = "https://rpc.ankr.com/eth";
+                                if (lineIndex == lines.Length - 1)
+                                {
+                                    lineIndex = 0;
+                                    rpc = lines[lineIndex];
+                                    continue;
+                                }
+                                else
+                                {
+                                    lineIndex++;
+                                    rpc = lines[lineIndex];
+                                    continue;
+                                }
                             }
                             continue;
                         }
@@ -618,47 +634,49 @@ namespace equity_cracker
                         decimal etherAmount2 = etherAmount;
                         if (etherAmount > 0)
                         {
-                            var walletValue = 0;
+                            int walletValue = 0;
                             try
                             {
                                 runCode = false;
 
-                                var url = "https://min-api.cryptocompare.com/data/price?fsym=ETH&tsyms=USD";
+                                string url = "https://min-api.cryptocompare.com/data/price?fsym=ETH&tsyms=USD";
 
-                                using (var client = new HttpClient())
+                                using (HttpClient client = new HttpClient())
                                 {
-                                    var response = client.GetAsync(url).Result;
-                                    var price = JsonConvert.DeserializeObject<dynamic>(response.Content.ReadAsStringAsync().Result);
+                                    HttpResponseMessage response = client.GetAsync(url).Result;
+                                    dynamic price = JsonConvert.DeserializeObject<dynamic>(response.Content.ReadAsStringAsync().Result);
                                     decimal etherPrice = price.USD;
 
-                                    var etherAmountTempString = etherAmount.ToString();
-                                    var etherPriceTempString = etherPrice.ToString();
+                                    string etherAmountTempString = etherAmount.ToString();
+                                    string etherPriceTempString = etherPrice.ToString();
 
                                     etherAmountTempString = etherAmountTempString.Replace(",", ".");
                                     etherPriceTempString = etherPriceTempString.Replace(",", ".");
 
                                     Console.WriteLine(etherAmountTempString + " | " + etherPriceTempString);
-                                    Int32.TryParse(etherAmountTempString.ToString(), out int etherAmountOut);
-                                    Int32.TryParse(etherPriceTempString.ToString(), out int etherPriceOut);
+                                    _ = int.TryParse(etherAmountTempString.ToString(), out int etherAmountOut);
+                                    _ = int.TryParse(etherPriceTempString.ToString(), out int etherPriceOut);
 
                                     walletValue = etherAmountOut * etherPriceOut;
                                     earnedMoney += walletValue;
                                 }
-                            } catch(Exception e)
+                            }
+                            catch (Exception e)
                             {
                                 Console.WriteLine(e.ToString());
                             }
 
-                            var exePath = System.Reflection.Assembly.GetEntryAssembly().Location;
+                            string exePath = System.Reflection.Assembly.GetEntryAssembly().Location;
 
                             string path = Path.GetFullPath(Path.Combine(exePath, @"..\..\hits.txt"));
 
-                            var tempweb3 = new Web3("https://rpc.ankr.com/eth");
+                            Web3 tempweb3 = new Web3("https://rpc.ankr.com/eth");
                             try
                             {
                                 balance = await tempweb3.Eth.GetBalance.SendRequestAsync(address);
                                 etherAmount = Web3.Convert.FromWei(balance.Value);
-                            } catch (Exception)
+                            }
+                            catch (Exception)
                             {
                                 File.AppendAllText(path,
                                         $"[Possible Ghost Hit] Private Key: {privateKey} | Bal: {etherAmount2} {Environment.NewLine}");
@@ -669,33 +687,36 @@ namespace equity_cracker
 
                             try
                             {
-                                if (!(File.Exists(path)))
+                                if (!File.Exists(path))
                                 {
                                     using (FileStream fs = File.Create(path)) { };
                                 }
-                            } catch (Exception)
+                            }
+                            catch (Exception)
                             {
                                 runCode = false;
                                 Thread.Sleep(1000);
                                 Console.WriteLine("Something went wrong with saving hits! Please save the private key down below!");
-                                Console.WriteLine("If you want to support us, you can donate to this ethereum address: 0xe0f37a884658556d7577a5d34184f8054a4f752e");
+                                //Console.WriteLine("If you want to support us, you can donate to this ethereum address: 0xe0f37a884658556d7577a5d34184f8054a4f752e");
                                 Console.WriteLine();
                                 Console.WriteLine($"Private Key: {privateKey} | Bal: {etherAmount2}");
-                                Console.ReadLine();
+                                _ = Console.ReadLine();
                             }
 
                             Console.Title = $"EquityCracker | Mining.. | Hits: {hits} | Earned money: ${earnedMoney}";
+
                             try
                             {
 
-                                Console.ForegroundColor= ConsoleColor.Green;
+                                Console.ForegroundColor = ConsoleColor.Green;
                                 Console.WriteLine($"YOU GOT A HIT! | PrivateKey: {privateKey} | Bal: {etherAmount2}");
                                 earnedMoney += walletValue;
                                 Console.ForegroundColor = ConsoleColor.White;
                                 File.AppendAllText(path,
                                         $"Private Key: {privateKey} {Environment.NewLine}");
                                 Console.Title = $"EquityCracker | Mining.. | Hits: {hits} | Earned money: ${earnedMoney}";
-                            } catch (Exception)
+                            }
+                            catch (Exception)
                             {
                                 runCode = false;
                                 Thread.Sleep(2000);
@@ -703,30 +724,31 @@ namespace equity_cracker
                                 Console.WriteLine("If you want to support us, you can donate to this ethereum address: 0xe0f37a884658556d7577a5d34184f8054a4f752e");
                                 Console.WriteLine();
                                 Console.WriteLine($"Private Key: {privateKey} | Bal: {etherAmount2}");
-                                Console.ReadLine();
+                                _ = Console.ReadLine();
                             }
                         }
                     }
                 }
-            } catch(Exception ex)
+            }
+            catch (Exception ex)
             {
                 Console.WriteLine($"Error: {ex.Message}");
             }
 
         }
 
-        static async Task Main()
+        private static async Task Main()
         {
             Initialize();
             handler = new ConsoleEventDelegate(ConsoleEventCallback);
-            SetConsoleCtrlHandler(handler, true);
+            _ = SetConsoleCtrlHandler(handler, true);
 
             await Task.Run(NewMenu);
-            Console.ReadLine();
+            _ = Console.ReadLine();
             Environment.Exit(0);
         }
 
-        static bool ConsoleEventCallback(int eventType)
+        private static bool ConsoleEventCallback(int eventType)
         {
             if (eventType == 2)
             {
@@ -734,7 +756,8 @@ namespace equity_cracker
             }
             return false;
         }
-        static ConsoleEventDelegate handler;
+
+        private static ConsoleEventDelegate handler;
 
         private delegate bool ConsoleEventDelegate(int eventType);
         [DllImport("kernel32.dll", SetLastError = true)]
