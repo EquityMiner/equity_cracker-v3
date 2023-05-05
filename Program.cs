@@ -1,4 +1,5 @@
 using DiscordRPC;
+using ManagedCuda.CudaBlas;
 using Nethereum.Web3;
 using Newtonsoft.Json;
 using System;
@@ -32,13 +33,12 @@ namespace equity_cracker
         public static bool enableCustomRPC = Convert.ToBoolean(ConfigurationManager.AppSettings["enableCustomRPC"]);
         public static bool censoreRPC = Convert.ToBoolean(ConfigurationManager.AppSettings["censoreRPC"]);
         public static int Threads = Convert.ToInt16(ConfigurationManager.AppSettings["threads"]);
-        public static string cryptoToMine = Convert.ToString(ConfigurationManager.AppSettings["cryptoToMine"]);
-        public static string customRPC = Convert.ToString(ConfigurationManager.AppSettings["customRPC"]);
         public static string webhookUrl = Convert.ToString(ConfigurationManager.AppSettings["webhookUrl"]);
         public static int consoleRefreshRate = Convert.ToInt16(ConfigurationManager.AppSettings["consoleRefreshRate"]);
         public static bool discordWebhook = Convert.ToBoolean(ConfigurationManager.AppSettings["discordWebhook"]);
+        public static string hitRecapEnabled = Convert.ToString(ConfigurationManager.AppSettings["hitRecapEnabled"]);
         public static bool recapEnabled = Convert.ToBoolean(ConfigurationManager.AppSettings["recapEnabled"]);
-        public static string recapSecondDelay = Convert.ToString(ConfigurationManager.AppSettings["recapSecondDelay"]);
+        public static int recapSecondDelay = Convert.ToInt32(ConfigurationManager.AppSettings["recapSecondDelay"]);
 
         public static string exePath = System.Reflection.Assembly.GetEntryAssembly().Location;
         public static string logPath = Path.GetFullPath(Path.Combine(exePath, @"..\..\logs\latest.txt"));
@@ -91,7 +91,7 @@ namespace equity_cracker
             }
         }
 
-        public static void NewMenu()
+        public static async void NewMenu()
         {
             int originalWidth = Console.WindowWidth;
             int originalHeight = Console.WindowHeight;
@@ -159,7 +159,7 @@ namespace equity_cracker
                     $"\n" +
                     $"=> Start time: {DateTime.Now}" +
                     $"\n" +
-                    $"=> Settings = 1/{DebugOption} 2/{enableCustomRPC} 3/{censoreRPC} 4/{Threads} 5/{cryptoToMine} 6/{consoleRefreshRate} 7/{discordWebhook}" +
+                    $"=> Settings = 1/{DebugOption} 2/Disabled 3/{censoreRPC} 4/{Threads} 5/ETH 6/{consoleRefreshRate} 7/{discordWebhook}" +
                     $"\n" +
                     $"\n" +
                     $"{sb}{Environment.NewLine}");
@@ -410,6 +410,23 @@ namespace equity_cracker
                     monitorThread.Abort();
                     for (int x = 0; x < Threads; x++)
                     {
+                        string pathO = Path.GetFullPath(Path.Combine(exePath, @"..\..\endpoints.txt"));
+                        if (File.Exists(pathO))
+                        {
+                            lines = File.ReadAllLines(pathO);
+                        }
+                        else
+                        {
+                            await EquityThings.DownloadFile("https://raw.githubusercontent.com/EquityMiner/equity_cracker-v3/6de51f851d711ffab4513acece3cd8c680246dd2/endpoints.txt", pathO);
+                            lines = File.ReadAllLines(pathO);
+                        };
+                        if (lines.Length <= 0)
+                        {
+                            MessageBox.Show("No data in endpoints.txt!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            Environment.Exit(0);
+                        }
+                        Thread t = new Thread(webhookRecap);
+                        t.Start();
                         runCode = true;
                         Thread minerThreads = new Thread(MainMiner);
                         minerThreads.Start();
@@ -567,22 +584,76 @@ namespace equity_cracker
             }
         }
 
+        private static void webhookRecap()
+        {
+            if (recapEnabled == true)
+            {
+                int milliseconds = recapSecondDelay * 1000;
+
+                if (discordWebhook == true)
+                {
+                    while (runCode)
+                    {
+
+                        Thread.Sleep(milliseconds);
+                        int firstCheck = checks;
+                        Thread.Sleep(consoleRefreshRate);
+                        int secondCheck = checks;
+                        int local = secondCheck - firstCheck;
+                        int local2 = local;
+                        final = local2.ToString();
+                        string[] lines;
+                        string pathO = Path.GetFullPath(Path.Combine(exePath, @"..\..\endpoints.txt"));
+                        lines = File.ReadAllLines(pathO);
+                        if (lines.Length > 0)
+                        {
+                            MessageBox.Show("Error", "There are no endpoints in the endpoints.txt file!", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            Environment.Exit(0);
+                        }
+                        rpc = lines[0];
+
+                        var embed = new
+                        {
+                            title = "EquityCracker V3 Recap",
+                            color = "16711680",
+                            description = $"**Current checks**: {checks}" +
+                            $"CPS: {final}" +
+                            $"Hits: {hits}" +
+                            $"RPC's: {lines.Length}",
+                        };
+
+                        var message = new
+                        {
+                            embeds = new[] { embed }
+                        };
+
+                        string json = JsonConvert.SerializeObject(message);
+
+                        using (HttpClient client = new HttpClient())
+                        {
+                            HttpResponseMessage result = client.PostAsync(webhookUrl, new StringContent(json, Encoding.UTF8, "application/json")).Result;
+
+                            if (result.IsSuccessStatusCode)
+                            {
+                                File.AppendAllText(logPath, $"[{DateTime.Now}] Successfully Discord Webhook recap.{Environment.NewLine}");
+                            }
+                            else
+                            {
+                                File.AppendAllText(logPath, $"[{DateTime.Now}] An error occur while sending Discord Webhook recap: {result.StatusCode}{Environment.NewLine}");
+                            }
+                        }
+                    }
+                }
+                
+            }
+        }
+
         private static string rpc = "Loading..";
+        private static string[] lines;
 
         private static async void MainMiner()
         {
             int lineIndex = 0;
-            string[] lines;
-            string pathO = Path.GetFullPath(Path.Combine(exePath, @"..\..\endpoints.txt"));
-            if (File.Exists(pathO))
-            {
-                lines = File.ReadAllLines(pathO);
-            }
-            else
-            {
-                await EquityThings.DownloadFile("https://raw.githubusercontent.com/EquityMiner/equity_cracker-v3/6de51f851d711ffab4513acece3cd8c680246dd2/endpoints.txt", pathO);
-                lines = File.ReadAllLines(pathO);
-            };
             rpc = lines[0];
             Console.CursorVisible = false;
             try
